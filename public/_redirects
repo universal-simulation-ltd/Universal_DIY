@@ -1,0 +1,31 @@
+# Cloudflare Pages rewrites — Universal DIY is served under /diy/ but the built
+# files in dist/ are flat (Vite's `base` only rewrites URLs INSIDE the HTML; it
+# does not place files in dist/diy/). This file is load-bearing: without it the
+# app 404s on every asset the moment it is served under a path.
+#
+# 200 status = transparent rewrite (URL bar unchanged). Specific rules first,
+# broad SPA fallback last.
+
+# Service-worker + PWA artefacts.
+/diy/sw.js                /sw.js                200
+/diy/registerSW.js        /registerSW.js        200
+/diy/manifest.webmanifest /manifest.webmanifest 200
+/diy/workbox-*            /workbox-:splat       200
+
+# Hashed asset bundles.
+/diy/assets/*             /assets/:splat        200
+
+# Static files referenced from index.html / app code (BASE_URL-prefixed).
+/diy/favicon.svg          /favicon.svg          200
+/diy/unisim-icon.png      /unisim-icon.png      200
+/diy/icon-180.png         /icon-180.png         200
+/diy/icon-192.png         /icon-192.png         200
+/diy/icon-512.png         /icon-512.png         200
+
+# SEO crawler files.
+/diy/robots.txt           /robots.txt           200
+
+# SPA fallback — everything else under /diy/ serves the shell. This is what
+# makes /diy/cutlist work as an alias for the calculator from day one; the app
+# resolves the route itself (src/lib/route.ts).
+/diy/*                    /index.html           200
