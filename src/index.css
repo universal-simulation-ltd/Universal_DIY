@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/* Universal DIY is LIGHT ONLY, on purpose, and that is not an oversight.
+   The suite rule is that an app opens light until the user explicitly asks for
+   something else; this app's actual deliverable is a sheet of paper carried to
+   a workshop, so the screen and the print need the same ink-on-white contrast
+   and there is nothing here a dark palette would improve. If a theme toggle is
+   ever added, light must stay the default and the print styles below must not
+   inherit from it. */
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tabular figures everywhere a cut size is shown. 564 and 584 must not be a
+   glance apart, on screen or on paper. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Paper-only content. The @media print block below reveals it. */
+.print-only {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Print — the sheet that goes to the workshop.
+
+   Requirements, not polish: workshop printers are black-and-white and the sheet
+   gets sawdust on it, so NO COLOUR-ONLY ENCODING anywhere, no light-grey rules,
+   generous type. Page 1 is the diagram, page 2 the list.
+   --------------------------------------------------------------------------- */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html, body {
+    background: #fff !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Everything on paper is black on white. A highlight that survives to print
+     would read as ink somebody has to interpret. */
+  .print-sheet, .print-sheet * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .print-sheet {
+    font-size: 11pt;
+    line-height: 1.35;
+  }
+
+  /* The card chrome is the screen's job. On paper the sheet IS the card, and a
+     light-grey rounded rule is exactly the kind of thing a workshop printer
+     turns into nothing. */
+  .print-sheet figure,
+  section.print-sheet {
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* An eleven-column cut list does not fit A4 at screen sizes, and the screen's
+     horizontal scroller CLIPS on paper rather than scrolling — which silently
+     ate the Notes column. Let it wrap instead. */
+  .print-sheet .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  .print-sheet table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .print-sheet th, .print-sheet td {
+    border: 1px solid #000 !important;
+    padding: 3pt 4pt;
+    font-size: 8.5pt;
+    overflow-wrap: anywhere;
+  }
+
+  /* Two orthogonal sections side by side, so page 1 carries the whole drawing. */
+  .print-sheet .sections-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6mm !important;
+  }
+
+  /* Cap the drawing height so the net and both sections share one page. The
+     viewBox keeps the scale honest — this letterboxes, it does not distort. */
+  .print-sheet svg {
+    max-height: 88mm;
+  }
+
+  .print-sheet thead {
+    display: table-header-group; /* repeat the header on every page */
+  }
+
+  .print-sheet tr, .print-sheet svg {
+    break-inside: avoid;
+  }
+
+  /* Keep the header block with the table it describes. */
+  .print-sheet header {
+    break-after: avoid;
+  }
+
+  /* Panel outlines must stay black and heavy enough to survive a tired toner
+     cartridge, and every fill goes white. The on-screen highlight is a tint
+     plus a heavier outline; on paper the tint would read as ink that means
+     something, so it is dropped and nothing is encoded in colour at all. */
+  .print-sheet svg [data-ink] {
+    stroke: #000 !important;
+  }
+
+  .print-sheet svg .panel-fill {
+    fill: #fff !important;
+  }
+}
