@@ -13,7 +13,23 @@ import {
 import { SHEETS, STOCK, findStock, type Stock } from '../lib/materials'
 import { loadLocal, saveLocal } from '../lib/storage'
 import { readShareFromUrl } from '../lib/share'
+import type { Template } from '../lib/templates'
 import type { Unit } from '../lib/units'
+
+/**
+ * Where the design on THIS page load came from.
+ *
+ * Fixed at startup and never written again, because it is a fact about how the
+ * visitor arrived, not a piece of app state. The landing page reads it to decide
+ * what to offer:
+ *
+ *   'link'  — a shared design in the URL hash. Skip the landing page entirely;
+ *             somebody who followed a link to a box wants the box, not a menu.
+ *   'saved' — a design in localStorage from a previous session. Offer to carry
+ *             on with it, but still show the templates.
+ *   'new'   — nothing to resume.
+ */
+export type DesignOrigin = 'link' | 'saved' | 'new'
 
 /**
  * All app state. The cut list itself is NOT state — it is `computeCutlist(design)`,
@@ -34,6 +50,8 @@ export interface DiyState {
   hover: PanelId | null
   /** Is the wrap-order list revealed? The presets are the primary control. */
   advanced: boolean
+  /** How the visitor arrived. Set once at startup, never written again. */
+  readonly origin: DesignOrigin
 
   setDim: (axis: 'width' | 'depth' | 'height', mm: number) => void
   setThickness: (mm: number) => void
@@ -55,6 +73,8 @@ export interface DiyState {
   applyOrder: (order: PanelId[]) => void
 
   replace: (design: Design, unit: Unit, notes: Record<string, string>) => void
+  /** Start from a landing-page template. A starting design and nothing else. */
+  applyTemplate: (template: Template) => void
   reset: () => void
 }
 
@@ -64,14 +84,14 @@ function stockIdFor(design: Design): string {
   return hit ? hit.id : 'custom'
 }
 
-function initial(): { design: Design; unit: Unit; notes: Record<string, string> } {
+function initial(): { design: Design; unit: Unit; notes: Record<string, string>; origin: DesignOrigin } {
   // A link beats local storage: somebody who followed a shared design wants the
   // design in the link, not whatever they were drawing last week.
   const shared = typeof window === 'undefined' ? null : readShareFromUrl()
-  if (shared) return { design: shared.design, unit: shared.unit, notes: {} }
+  if (shared) return { design: shared.design, unit: shared.unit, notes: {}, origin: 'link' }
   const local = typeof window === 'undefined' ? null : loadLocal()
-  if (local) return local
-  return { design: emptyDesign(), unit: 'mm', notes: {} }
+  if (local) return { ...local, origin: 'saved' }
+  return { design: emptyDesign(), unit: 'mm', notes: {}, origin: 'new' }
 }
 
 export const useDiyStore = create<DiyState>((set, get) => {
@@ -95,6 +115,7 @@ export const useDiyStore = create<DiyState>((set, get) => {
     sheetId: SHEETS[0].id,
     hover: null,
     advanced: false,
+    origin: start.origin,
 
     setDim: (axis, mm) => patchDesign({ [axis]: mm } as Partial<Design>),
 
@@ -145,6 +166,22 @@ export const useDiyStore = create<DiyState>((set, get) => {
     applyOrder: (order) => patchDesign({ order: [...order] }),
 
     replace: (design, unit, notes) => change({ design, unit, notes, stockId: stockIdFor(design) }),
+
+    // Applying a template is `replace` with the template's own design copied,
+    // and it deliberately does nothing else. No template id is recorded and
+    // nothing downstream branches on which card was clicked — the moment it
+    // lands it is an ordinary design and every control still moves. The copy
+    // matters: TEMPLATES is a module-level constant, so handing its `design`
+    // object to the store un-copied would let the first edit rewrite the
+    // template for the rest of the session.
+    applyTemplate: (template) => {
+      const design: Design = {
+        ...template.design,
+        present: { ...template.design.present },
+        order: [...template.design.order],
+      }
+      change({ design, notes: {}, stockId: stockIdFor(design) })
+    },
 
     reset: () => {
       const design = emptyDesign()

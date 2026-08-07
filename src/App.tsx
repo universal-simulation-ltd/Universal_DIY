@@ -1,12 +1,34 @@
+import { useEffect } from 'react'
 import { UniversalAppsNavBar } from '@unisim/sdk'
 import AppMenu from './components/Header/AppMenu'
 import ProductLogo from './components/Header/ProductLogo'
 import DiyApp from './components/diy/DiyApp'
+import Landing from './components/landing/Landing'
 import { CONTAINER } from './lib/layout'
+import { navigate } from './lib/route'
+import { useRoute } from './lib/useRoute'
+import { useDiyStore } from './stores/diyStore'
 
 const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_DIY'
 
 export default function App() {
+  const route = useRoute()
+  const origin = useDiyStore((s) => s.origin)
+
+  // A shared link carries a whole design in its hash, and whoever followed it
+  // wants that box — not a menu asking what they are building. So a link always
+  // opens the calculator whatever path it points at, which also means every
+  // link shared before the landing page existed still works.
+  const followedALink = origin === 'link'
+  const showCalculator = route === 'cutlist' || followedALink
+
+  // Decided during render rather than in an effect, so the landing page never
+  // flashes up for a frame first; the effect only tidies the address bar
+  // afterwards, keeping the hash so the design in it survives a reload.
+  useEffect(() => {
+    if (followedALink && route === 'home') navigate('cutlist', { keepHash: true, replace: true })
+  }, [followedALink, route])
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-100">
       <UniversalAppsNavBar
@@ -21,7 +43,7 @@ export default function App() {
       />
 
       <main className="flex-1">
-        <DiyApp />
+        {showCalculator ? <DiyApp /> : <Landing />}
       </main>
 
       <footer className="no-print border-t border-slate-200 bg-white">
