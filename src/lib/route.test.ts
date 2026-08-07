@@ -12,6 +12,14 @@ describe('/diy is the landing page and /diy/cutlist is the calculator', () => {
   it('resolves under the dev base path, where base is just /', () => {
     expect(routeFor('/', '/')).toBe('home')
     expect(routeFor('/cutlist', '/')).toBe('cutlist')
+    expect(routeFor('/parts', '/')).toBe('parts')
+  })
+
+  it('resolves the free parts list, which is a page and not a box', () => {
+    expect(routeFor('/diy/parts', '/diy/')).toBe('parts')
+    expect(routeFor('/diy/parts/', '/diy/')).toBe('parts')
+    expect(hrefFor('parts', '/diy/')).toBe('/diy/parts')
+    expect(hrefFor('parts', '/')).toBe('/parts')
   })
 
   it('falls back to the landing page for anything else', () => {

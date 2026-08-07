@@ -7,6 +7,7 @@ import { formatShort, type Unit } from '../../lib/units'
 import type { Design } from '../../lib/panels'
 import { useDiyStore } from '../../stores/diyStore'
 import HeroAssembly from './HeroAssembly'
+import JoinSketch from './JoinSketch'
 import TemplatePreview from './TemplatePreview'
 
 /**
@@ -109,8 +110,8 @@ export default function Landing() {
           ))}
         </ul>
 
-        <p className="mt-5 text-sm text-slate-600">
-          Building something else?{' '}
+        <p className="mt-4 text-sm text-slate-600">
+          A different box?{' '}
           <a
             href={hrefFor('cutlist')}
             onClick={(e) => {
@@ -127,6 +128,45 @@ export default function Landing() {
           — anything six flat panels can make is in range, and the panel order is fully
           reorderable.
         </p>
+
+        {/*
+          Not a seventh template, and given its own full-width card so nobody
+          reads it as one. The six above are all the same model with different
+          panels present; this is a different model — no box at all, just the
+          pieces and where they meet. A card in the grid would promise a shape
+          it does not have.
+        */}
+        <a
+          href={hrefFor('parts')}
+          onClick={(e) => {
+            if (isPlainClick(e)) {
+              e.preventDefault()
+              navigate('parts')
+            }
+          }}
+          className="diy-card mt-5 block rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-amber-400 hover:bg-amber-50/40 focus:outline-none focus-visible:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-200 sm:p-5"
+        >
+          <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)]">
+            <div>
+              <div className="flex flex-wrap items-baseline gap-2">
+                <h3 className="text-base font-semibold text-slate-900">Not a box — a custom parts list</h3>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                  Any number of pieces
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                Give each piece a length and a width, and add as many as you like. Where two pieces
+                butt together, click the two ends that meet and one loses a thickness to the other —
+                or leave them separate and every piece is cut exactly as typed.
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                For a face frame, a set of shelves, a batch of offcuts to size — or two different
+                projects going onto one sheet, tagged and ticked off separately.
+              </p>
+            </div>
+            <JoinSketch />
+          </div>
+        </a>
       </section>
 
       {/* --- what happens next --------------------------------------------- */}

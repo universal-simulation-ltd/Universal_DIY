@@ -1,10 +1,11 @@
 // ---------------------------------------------------------------------------
 // Routing — deliberately tiny, and deliberately not a router.
 //
-// Two pages:
+// Three pages:
 //
 //   /diy          the landing page — "what are you building?", a template grid.
-//   /diy/cutlist  the calculator, unchanged.
+//   /diy/cutlist  the box calculator, unchanged.
+//   /diy/parts    the free parts list — any pieces, joined or not.
 //
 // `/diy/cutlist` was registered as a working alias from day one against exactly
 // this change, so the calculator's URL does not move now that /diy has become a
@@ -23,7 +24,13 @@
 // argument rather than reading it — that also makes it testable in node.
 // ---------------------------------------------------------------------------
 
-export type Route = 'home' | 'cutlist'
+export type Route = 'home' | 'cutlist' | 'parts'
+
+/** The path segment for each route. `home` is the bare base path. */
+const SEGMENTS: Record<Exclude<Route, 'home'>, string> = {
+  cutlist: 'cutlist',
+  parts: 'parts',
+}
 
 /** Everything after the app's base path, with no leading or trailing slash. */
 export function pathAfterBase(pathname: string, base: string): string {
@@ -33,7 +40,9 @@ export function pathAfterBase(pathname: string, base: string): string {
 }
 
 export function routeFor(pathname: string, base: string): Route {
-  return pathAfterBase(pathname, base) === 'cutlist' ? 'cutlist' : 'home'
+  const rest = pathAfterBase(pathname, base)
+  const hit = (Object.keys(SEGMENTS) as Array<Exclude<Route, 'home'>>).find((r) => SEGMENTS[r] === rest)
+  return hit ?? 'home'
 }
 
 export function currentRoute(): Route {
@@ -44,7 +53,7 @@ export function currentRoute(): Route {
 /** Absolute href for a route, respecting the deployed base path. */
 export function hrefFor(route: Route, base = typeof window === 'undefined' ? '/' : import.meta.env.BASE_URL): string {
   const b = base.endsWith('/') ? base : `${base}/`
-  return route === 'cutlist' ? `${b}cutlist` : b
+  return route === 'home' ? b : `${b}${SEGMENTS[route]}`
 }
 
 // --- navigation -------------------------------------------------------------

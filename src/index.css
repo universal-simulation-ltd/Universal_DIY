@@ -33,6 +33,26 @@ body {
   display: none;
 }
 
+/* What a butted end lost to its partner, on the join board. Hatching rather
+   than a flat tint: this is the one part of the bar that is NOT wood, and on a
+   printed sheet a light tint would come out as either nothing or as ink that
+   looks like a piece. Diagonal rule survives a tired toner cartridge. */
+.diy-lost {
+  background-image: repeating-linear-gradient(
+    45deg,
+    #cbd5e1 0 2px,
+    transparent 2px 5px
+  );
+  border-right: 1px solid #94a3b8;
+  border-left: 1px solid #94a3b8;
+  /* Browsers drop background images when printing unless told not to, and a
+     dropped hatch here does not degrade to "slightly plainer" — it degrades to
+     a bar that looks like solid wood for its whole nominal length, which is
+     the wrong number stated confidently. */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
 /* ---------------------------------------------------------------------------
    Landing-page animation — the box assembling itself.
 
@@ -53,6 +73,17 @@ body {
 
 .diy-piece {
   animation: diy-fly-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* For annotations that have nothing to fly in from — they belong where they
+   are drawn and only wait their turn. */
+@keyframes diy-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.diy-fade {
+  animation: diy-fade-in 460ms ease both;
 }
 
 /* The card's hover tint reaches into the drawing, exactly as the calculator's
@@ -96,6 +127,7 @@ body {
    cannot animate, so on paper the drawing is simply finished. */
 @media (prefers-reduced-motion: reduce), print {
   .diy-piece,
+  .diy-fade,
   .diy-hero .diy-part,
   .diy-hero .diy-anno {
     animation: none !important;

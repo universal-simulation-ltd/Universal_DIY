@@ -148,6 +148,13 @@ export interface PieceType {
   qty: number
   grain: 'along length' | 'along width' | 'none'
   labels: string[]
+  /**
+   * Per-type material, for lists that mix stock. A box has ONE material by
+   * definition — one thickness for the whole box is the model's central
+   * simplification — so the box path leaves this unset and the caller supplies
+   * the design's material. A free parts list (parts.ts) sets it per row.
+   */
+  material?: string
 }
 
 export interface Cavity {

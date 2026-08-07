@@ -4,6 +4,7 @@ import AppMenu from './components/Header/AppMenu'
 import ProductLogo from './components/Header/ProductLogo'
 import DiyApp from './components/diy/DiyApp'
 import Landing from './components/landing/Landing'
+import PartsApp from './components/parts/PartsApp'
 import { CONTAINER } from './lib/layout'
 import { navigate } from './lib/route'
 import { useRoute } from './lib/useRoute'
@@ -18,8 +19,10 @@ export default function App() {
   // A shared link carries a whole design in its hash, and whoever followed it
   // wants that box — not a menu asking what they are building. So a link always
   // opens the calculator whatever path it points at, which also means every
-  // link shared before the landing page existed still works.
-  const followedALink = origin === 'link'
+  // link shared before the landing page existed still works. Only /parts
+  // outranks it: nobody arrives there by accident, and a stale hash from an
+  // earlier box must not drag them back to the box page.
+  const followedALink = origin === 'link' && route !== 'parts'
   const showCalculator = route === 'cutlist' || followedALink
 
   // Decided during render rather than in an effect, so the landing page never
@@ -43,7 +46,7 @@ export default function App() {
       />
 
       <main className="flex-1">
-        {showCalculator ? <DiyApp /> : <Landing />}
+        {showCalculator ? <DiyApp /> : route === 'parts' ? <PartsApp /> : <Landing />}
       </main>
 
       <footer className="no-print border-t border-slate-200 bg-white">

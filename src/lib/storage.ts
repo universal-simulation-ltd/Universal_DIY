@@ -12,10 +12,13 @@
 // ---------------------------------------------------------------------------
 
 import { PANEL_IDS, isValidOrder, type Design, type PanelId } from './panels'
+import { END_IDS, type Joint, type Part, type PartsProject } from './parts'
 import type { Unit } from './units'
 
 const KEY = 'unisim.diy.design.v1'
+const PARTS_KEY = 'unisim.diy.parts.v1'
 export const FILE_KIND = 'unisim.universal-diy.design'
+export const PARTS_FILE_KIND = 'unisim.universal-diy.parts'
 export const FILE_VERSION = 1
 
 export interface ProjectFile {
@@ -112,6 +115,142 @@ export function fromProjectFile(json: string): Persisted | null {
     if (!design) return null
     return {
       design,
+      unit: (['mm', 'cm', 'in'] as const).includes(parsed.unit as Unit) ? (parsed.unit as Unit) : 'mm',
+      notes: isNotes(parsed.notes) ? parsed.notes : {},
+    }
+  } catch {
+    return null
+  }
+}
+
+// --- the free parts list ----------------------------------------------------
+//
+// A separate key, a separate file kind and a separate sanitiser, because it is
+// a separate model — not a Design with extra fields. Sharing storage between
+// the two would mean one of them loading the other's data and having to guess.
+
+export interface PartsFile {
+  kind: typeof PARTS_FILE_KIND
+  version: number
+  savedAt: string
+  unit: Unit
+  project: PartsProject
+  notes: Record<string, string>
+}
+
+export interface PersistedParts {
+  project: PartsProject
+  unit: Unit
+  notes: Record<string, string>
+}
+
+/**
+ * Validate an untrusted parts list.
+ *
+ * Same job as `sanitiseDesign` and the same reason: a hand-edited file must not
+ * be able to put NaN into a cut length. Joints get the harder treatment —
+ * anything referring to a piece that is not here, or naming an end twice, is
+ * DROPPED rather than kept, because a joint the model cannot honour silently
+ * deducts nothing, and a piece cut one thickness too long is exactly the
+ * failure this app exists to prevent. Dropping is safe: an unjoined end is
+ * visible on screen as an unjoined end.
+ */
+export function sanitiseParts(input: unknown): PartsProject | null {
+  if (!input || typeof input !== 'object') return null
+  const raw = input as Partial<PartsProject>
+  if (!Array.isArray(raw.parts)) return null
+
+  const parts: Part[] = []
+  const ids = new Set<string>()
+  for (const item of raw.parts) {
+    const p = item as Partial<Part>
+    if (typeof p.id !== 'string' || !p.id || ids.has(p.id)) continue
+    const nums = [p.length, p.width, p.thickness]
+    if (nums.some((v) => typeof v !== 'number' || !Number.isFinite(v) || v <= 0)) continue
+    if (typeof p.qty !== 'number' || !Number.isInteger(p.qty) || p.qty < 1) continue
+    ids.add(p.id)
+    parts.push({
+      id: p.id,
+      name: typeof p.name === 'string' ? p.name.slice(0, 120) : '',
+      project: typeof p.project === 'string' ? p.project.slice(0, 120) : '',
+      length: p.length as number,
+      width: p.width as number,
+      qty: p.qty,
+      thickness: p.thickness as number,
+      material: typeof p.material === 'string' ? p.material.slice(0, 120) : '',
+      grained: Boolean(p.grained),
+    })
+  }
+  if (parts.length === 0) return null
+
+  const joints: Joint[] = []
+  const usedEnds = new Set<string>()
+  const jointIds = new Set<string>()
+  for (const item of Array.isArray(raw.joints) ? raw.joints : []) {
+    const j = item as Partial<Joint>
+    if (typeof j.id !== 'string' || !j.id || jointIds.has(j.id)) continue
+    const ends = [j.through, j.butt]
+    if (!ends.every((e) => e && ids.has(e.part) && (END_IDS as readonly string[]).includes(e.end))) continue
+    if (j.through!.part === j.butt!.part) continue
+    const keys = ends.map((e) => `${e!.part}:${e!.end}`)
+    if (keys.some((k) => usedEnds.has(k))) continue
+    keys.forEach((k) => usedEnds.add(k))
+    jointIds.add(j.id)
+    joints.push({ id: j.id, through: { ...j.through! }, butt: { ...j.butt! } })
+  }
+
+  return {
+    name: typeof raw.name === 'string' ? raw.name.slice(0, 120) : 'My cut',
+    parts,
+    joints,
+  }
+}
+
+export function loadLocalParts(): PersistedParts | null {
+  try {
+    const raw = localStorage.getItem(PARTS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<PersistedParts>
+    const project = sanitiseParts(parsed.project)
+    if (!project) return null
+    return {
+      project,
+      unit: (['mm', 'cm', 'in'] as const).includes(parsed.unit as Unit) ? (parsed.unit as Unit) : 'mm',
+      notes: isNotes(parsed.notes) ? parsed.notes : {},
+    }
+  } catch {
+    return null
+  }
+}
+
+export function saveLocalParts(state: PersistedParts): void {
+  try {
+    localStorage.setItem(PARTS_KEY, JSON.stringify(state))
+  } catch {
+    // Same as the box: a private-browsing quota failure is not worth
+    // interrupting a cut list for.
+  }
+}
+
+export function toPartsFile(state: PersistedParts): PartsFile {
+  return {
+    kind: PARTS_FILE_KIND,
+    version: FILE_VERSION,
+    savedAt: new Date().toISOString(),
+    unit: state.unit,
+    project: state.project,
+    notes: state.notes,
+  }
+}
+
+export function fromPartsFile(json: string): PersistedParts | null {
+  try {
+    const parsed = JSON.parse(json) as Partial<PartsFile>
+    if (parsed.kind !== PARTS_FILE_KIND) return null
+    const project = sanitiseParts(parsed.project)
+    if (!project) return null
+    return {
+      project,
       unit: (['mm', 'cm', 'in'] as const).includes(parsed.unit as Unit) ? (parsed.unit as Unit) : 'mm',
       notes: isNotes(parsed.notes) ? parsed.notes : {},
     }

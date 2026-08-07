@@ -23,6 +23,9 @@ Part of the [Universal Apps](https://opensource.unisim.co.uk) suite by
 - **Starts with the shape, not the sums.** The landing page asks what you are
   building — box, shelf unit, tray, cabinet carcass, drawer, plinth — and each
   card is a starting design, not a mode. See below.
+- **Or no shape at all.** The custom parts list takes any pieces you like:
+  length, width, how many. Click the two ends that meet to butt-join them, or
+  leave every piece separate. Several projects can share one cut.
 - **Six panels, one box.** Left, Right, Top, Bottom, Back and Front. Each can be
   present or omitted, so open-top trays and open-back cabinets work.
 - **Says how the panels meet, correctly.** Not six independent switches — a
@@ -106,13 +109,59 @@ one place the model can be shown happening rather than described.
 | Route | Page |
 |---|---|
 | `/diy` | The landing page — templates |
-| `/diy/cutlist` | The calculator |
+| `/diy/cutlist` | The box calculator |
+| `/diy/parts` | The free parts list |
 
 `/diy/cutlist` was registered as a working alias on day one against exactly this
 change, so **no existing URL moved**: every bookmark and shared link made while
 `/diy` was the calculator already pointed at `/diy/cutlist` too. A shared link
 skips the landing page entirely — its hash carries a whole design, and somebody
 who followed one wants the box, not a menu.
+
+## Not a box: the custom parts list
+
+`/diy/parts` is the free-form page, and it is a **different model**, not a
+seventh template. Give each piece a length and a width, add as many as you
+like, and where two pieces butt together click the two ends that meet. One runs
+through and keeps its length; the other butts into its face and loses exactly
+one thickness. Leave them separate and each piece is cut to precisely the
+length typed.
+
+It keeps the one idea that made the box model worth having and throws away the
+shape. Where the box settles "who runs through" globally with a wrap order over
+six fixed panels, `src/lib/parts.ts` settles it per joint:
+
+```ts
+interface Joint { through: PartEnd; butt: PartEnd }
+```
+
+A joint *names* its through piece and its butt piece, so there is no state in
+which both run through (two pieces of wood in the same place) or neither does
+(a `t`-wide gap) — the same argument that rejected six "extends / sits inside"
+booleans for the box. Every joint list is buildable by construction, and
+`parts.test.ts` checks that under every combination rather than trusting it.
+
+Three things follow that the box model never has to face:
+
+- **The deduction is the partner's thickness, not the piece's own.** A parts
+  list may mix stock, so a 12 mm rail butting into an 18 mm stile loses 18. A
+  box has one thickness by definition, so it cannot express the mistake.
+- **Each end takes at most one joint.** Two rails butting into the same end of
+  one stile is not a frame, it is two rails in the same place.
+- **Positions are not modelled.** A joint says "this end butts into that
+  piece", never where either piece is, so the page cannot tell you a frame
+  closes up and does not pretend to — no assembled drawing, no cavity check.
+  Widths are never deducted either; a joint is at an end, and the end is on the
+  length.
+
+Several projects can share one list. Rows carry a project tag, the printed
+sheet groups and tallies by it, and the sheet estimate covers the lot — which
+is the point, since one trip to the merchant often covers two builds. Two rows
+that happen to come out the same size stay two rows: merging them would take
+away the thing a multi-project list is for.
+
+There is no share link on this page. A box is a dozen numbers and fits in a
+URL; a parts list has no length limit, so it saves to a file instead.
 
 ## What it deliberately will not do
 

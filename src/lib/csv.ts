@@ -29,6 +29,12 @@ export function csvNumber(mm: number): string {
   return String(rounded)
 }
 
+/**
+ * `material` is the fallback, used for every row that does not carry its own.
+ * A box has one material by definition, so its rows never do; a free parts list
+ * mixes stock, so each of its rows does. One exporter either way — an importer
+ * cannot tell which page the file came from, and should not have to.
+ */
 export function toCsv(
   types: PieceType[],
   material: string,
@@ -41,7 +47,7 @@ export function toCsv(
       csvNumber(t.width),
       String(t.qty),
       cell(t.letter),
-      cell(material),
+      cell(t.material ?? material),
       cell(t.grain),
       cell(notes[t.letter] ?? ''),
     ].join(','))
