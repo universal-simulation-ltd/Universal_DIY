@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { CONTAINER } from '../../lib/layout'
-import { currentRoute } from '../../lib/route'
+import { currentRoute, hrefFor, navigate } from '../../lib/route'
 import { useCutlist, useDiyStore } from '../../stores/diyStore'
 import BoxInputs from './BoxInputs'
 import CutList from './CutList'
@@ -27,7 +27,21 @@ export default function DiyApp() {
   return (
     <div className={`${CONTAINER} py-5 sm:py-7`}>
       <header className="no-print mb-5">
-        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
+        {/* Back to the templates. A real href so it can be opened in a new tab,
+            and it deliberately does NOT reset the design — coming back here
+            finds the box exactly as it was left. */}
+        <a
+          href={hrefFor('home')}
+          onClick={(e) => {
+            if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+            e.preventDefault()
+            navigate('home')
+          }}
+          className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-amber-800"
+        >
+          <span aria-hidden>←</span> All templates
+        </a>
+        <h1 className="mt-1 text-xl sm:text-2xl font-semibold text-slate-900">
           Cut list for a butt-joint box
         </h1>
         <p className="mt-1 text-sm text-slate-600 max-w-2xl">

@@ -33,6 +33,109 @@ body {
   display: none;
 }
 
+/* What a butted end lost to its partner, on the join board. Hatching rather
+   than a flat tint: this is the one part of the bar that is NOT wood, and on a
+   printed sheet a light tint would come out as either nothing or as ink that
+   looks like a piece. Diagonal rule survives a tired toner cartridge. */
+.diy-lost {
+  background-image: repeating-linear-gradient(
+    45deg,
+    #cbd5e1 0 2px,
+    transparent 2px 5px
+  );
+  border-right: 1px solid #94a3b8;
+  border-left: 1px solid #94a3b8;
+  /* Browsers drop background images when printing unless told not to, and a
+     dropped hatch here does not degrade to "slightly plainer" — it degrades to
+     a bar that looks like solid wood for its whole nominal length, which is
+     the wrong number stated confidently. */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+/* ---------------------------------------------------------------------------
+   Landing-page animation — the box assembling itself.
+
+   Every piece flies in along its OWN normal axis from outside the box, in wrap
+   order, outermost first: the sides land at full height and the top then drops
+   in between them. The offsets come from src/lib/preview.ts, not from here, so
+   they are the real geometry and a test can check them; this file only owns the
+   timing. One `px` in an SVG transform is one user unit, which in these
+   drawings is one millimetre — the same space the rects are laid out in.
+   --------------------------------------------------------------------------- */
+
+/* Card thumbnails: plays once on mount, and again when the card is hovered or
+   focused (the component remounts the subtree to restart it). */
+@keyframes diy-fly-in {
+  from { transform: translate(var(--dx, 0px), var(--dy, 0px)); opacity: 0; }
+  to   { transform: translate(0px, 0px); opacity: 1; }
+}
+
+.diy-piece {
+  animation: diy-fly-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* For annotations that have nothing to fly in from — they belong where they
+   are drawn and only wait their turn. */
+@keyframes diy-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.diy-fade {
+  animation: diy-fade-in 460ms ease both;
+}
+
+/* The card's hover tint reaches into the drawing, exactly as the calculator's
+   two-way highlight does — same amber, same heavier outline, never colour alone. */
+.diy-card:hover .diy-piece,
+.diy-card:focus-visible .diy-piece {
+  fill: #fef3c7;
+  stroke: #b45309;
+}
+
+/* The hero: the same motion on a loop, with a long HOLD in the middle. A page
+   that never settles is a page nobody can read, so the box spends most of the
+   cycle assembled with its dimensions on it. */
+@keyframes diy-assemble {
+  0%, 6%   { transform: translate(var(--dx, 0px), var(--dy, 0px)); opacity: 0; }
+  24%, 84% { transform: translate(0px, 0px); opacity: 1; }
+  100%     { transform: translate(var(--dx, 0px), var(--dy, 0px)); opacity: 0; }
+}
+
+@keyframes diy-reveal {
+  0%, 30%  { opacity: 0; }
+  46%, 82% { opacity: 1; }
+  100%     { opacity: 0; }
+}
+
+.diy-hero .diy-part {
+  animation: diy-assemble 7s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.diy-hero .diy-anno {
+  animation: diy-reveal 7s ease-in-out infinite;
+}
+
+/* Reduced motion is not "a shorter animation" — it is the finished drawing,
+   held. Everything lands where it belongs and the annotations stay up, so the
+   page loses the movement and none of the information.
+
+   Print gets the same treatment, and for a harder reason: the hero loops
+   forever, so a sheet sent while a piece was mid-flight would come out with a
+   panel floating outside the box and the dimensions faded to nothing. Paper
+   cannot animate, so on paper the drawing is simply finished. */
+@media (prefers-reduced-motion: reduce), print {
+  .diy-piece,
+  .diy-fade,
+  .diy-hero .diy-part,
+  .diy-hero .diy-anno {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Print — the sheet that goes to the workshop.
 

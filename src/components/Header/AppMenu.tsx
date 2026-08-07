@@ -1,4 +1,5 @@
 import { EXAMPLES } from '../../lib/examples'
+import { navigate } from '../../lib/route'
 import { useDiyStore } from '../../stores/diyStore'
 
 // The per-app rows that slot into <UniversalAppsNavBar />'s `actions` prop —
@@ -14,16 +15,29 @@ export default function AppMenu() {
   const unit = useDiyStore((s) => s.unit)
   const reset = useDiyStore((s) => s.reset)
 
+  // The bar is on both pages now, so every row has to say where it goes as well
+  // as what it does: picking an example from the landing page used to load a
+  // design nothing on screen was showing.
   return (
     <>
       {EXAMPLES.map((example) => (
         <MenuRow
           key={example.id}
           label={example.label}
-          onClick={() => replace({ ...example.design }, unit, {})}
+          onClick={() => {
+            replace({ ...example.design }, unit, {})
+            navigate('cutlist')
+          }}
         />
       ))}
-      <MenuRow label="Start a new box" glyph="✦" onClick={reset} />
+      <MenuRow
+        label="Start a new box"
+        glyph="✦"
+        onClick={() => {
+          reset()
+          navigate('cutlist')
+        }}
+      />
     </>
   )
 }

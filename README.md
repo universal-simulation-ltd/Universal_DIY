@@ -1,7 +1,7 @@
 # Universal DIY
 
-> Type three numbers, say how the panels meet, get a checked cut list and a scale
-> drawing in about sixty seconds.
+> Pick the shape, type three numbers, say how the panels meet, get a checked cut
+> list and a scale drawing in about sixty seconds.
 
 > Open source — self-host free or hosted by UNI SIM.
 
@@ -20,6 +20,12 @@ Part of the [Universal Apps](https://opensource.unisim.co.uk) suite by
 
 ## What it does
 
+- **Starts with the shape, not the sums.** The landing page asks what you are
+  building — box, shelf unit, tray, cabinet carcass, drawer, plinth — and each
+  card is a starting design, not a mode. See below.
+- **Or no shape at all.** The custom parts list takes any pieces you like:
+  length, width, how many. Click the two ends that meet to butt-join them, or
+  leave every piece separate. Several projects can share one cut.
 - **Six panels, one box.** Left, Right, Top, Bottom, Back and Front. Each can be
   present or omitted, so open-top trays and open-back cabinets work.
 - **Says how the panels meet, correctly.** Not six independent switches — a
@@ -70,6 +76,93 @@ most people are actually building.
 Thickness is never rounded. A ¾″ board is 19.05 mm and deducts 38.1 mm; calling
 it 19 is a 1 mm lie you will find at glue-up.
 
+## Picking a template first
+
+The calculator's first question used to be the outer width of a box, which is
+the right question only if you already knew you wanted a box calculator. The
+landing page asks the one anybody can answer — *what are you building?* — and
+turns the answer into a starting `Design`.
+
+A template is **nothing but a starting design**. It is not a mode and not a
+stored kind; nothing downstream branches on which card was clicked, and the
+moment it lands every control still moves. That is deliberate: a template that
+locked anything would be a second model of the box sitting alongside
+`panels.ts`, and the whole point of the wrap order is that there is exactly one.
+So the only real content of `src/lib/templates.ts` is which panels are present
+and what the wrap order is — both already expressible, both already covered by
+the exhaustive tests.
+
+The card drawings are the **real plan and elevation cross-sections** of each
+template, from the same `sectionLayout` the calculator prints, at a common
+scale, with walls one true material thickness thick. A hand-drawn icon would be
+a decorative second model free to drift from the first, and it would be the
+first thing a visitor sees. Both sections are shown because either alone is
+blind: an elevation cut contains no front or back panel, so a shelf unit and a
+closed box have identical elevations; the plan has the mirrored blind spot for
+the top and bottom. `preview.test.ts` asserts exactly that.
+
+The animation is the assembly, played in wrap order, outermost first — the
+sides arrive at full height and then the top drops in *between* them. It is the
+one place the model can be shown happening rather than described.
+`prefers-reduced-motion` and print both get the finished drawing, held.
+
+| Route | Page |
+|---|---|
+| `/diy` | The landing page — templates |
+| `/diy/cutlist` | The box calculator |
+| `/diy/parts` | The free parts list |
+
+`/diy/cutlist` was registered as a working alias on day one against exactly this
+change, so **no existing URL moved**: every bookmark and shared link made while
+`/diy` was the calculator already pointed at `/diy/cutlist` too. A shared link
+skips the landing page entirely — its hash carries a whole design, and somebody
+who followed one wants the box, not a menu.
+
+## Not a box: the custom parts list
+
+`/diy/parts` is the free-form page, and it is a **different model**, not a
+seventh template. Give each piece a length and a width, add as many as you
+like, and where two pieces butt together click the two ends that meet. One runs
+through and keeps its length; the other butts into its face and loses exactly
+one thickness. Leave them separate and each piece is cut to precisely the
+length typed.
+
+It keeps the one idea that made the box model worth having and throws away the
+shape. Where the box settles "who runs through" globally with a wrap order over
+six fixed panels, `src/lib/parts.ts` settles it per joint:
+
+```ts
+interface Joint { through: PartEnd; butt: PartEnd }
+```
+
+A joint *names* its through piece and its butt piece, so there is no state in
+which both run through (two pieces of wood in the same place) or neither does
+(a `t`-wide gap) — the same argument that rejected six "extends / sits inside"
+booleans for the box. Every joint list is buildable by construction, and
+`parts.test.ts` checks that under every combination rather than trusting it.
+
+Three things follow that the box model never has to face:
+
+- **The deduction is the partner's thickness, not the piece's own.** A parts
+  list may mix stock, so a 12 mm rail butting into an 18 mm stile loses 18. A
+  box has one thickness by definition, so it cannot express the mistake.
+- **Each end takes at most one joint.** Two rails butting into the same end of
+  one stile is not a frame, it is two rails in the same place.
+- **Positions are not modelled.** A joint says "this end butts into that
+  piece", never where either piece is, so the page cannot tell you a frame
+  closes up and does not pretend to — no assembled drawing, no cavity check.
+  Widths are never deducted either; a joint is at an end, and the end is on the
+  length.
+
+Several projects can share one list. Rows carry a project tag, the printed
+sheet groups and tallies by it, and the sheet estimate covers the lot — which
+is the point, since one trip to the merchant often covers two builds. Two rows
+that happen to come out the same size stay two rows: merging them would take
+away the thing a multi-project list is for.
+
+There is no share link on this page. A box is a dozen numbers and fits in a
+URL; a parts list has no length limit, so it saves to a file instead.
+
 ## What it deliberately will not do
 
 The value here is that you can check the answer by hand, at the saw, with a tape
@@ -111,8 +204,8 @@ Or use the preview scripts, which pin the port and install on first run:
 .\scripts\preview.ps1       # Windows
 ```
 
-Then open <http://localhost:5196>. `/cutlist` is a working alias for the same
-page.
+Then open <http://localhost:5196> for the template chooser, or
+<http://localhost:5196/cutlist> to go straight to the calculator.
 
 | Script | What it does |
 |---|---|

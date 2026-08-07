@@ -1,14 +1,14 @@
-import { useEffect, useId, useState } from 'react'
-import { fieldText, parseLength, type Unit } from '../../lib/units'
+import { useId } from 'react'
+import { useLengthText } from '../../lib/useLengthText'
+import type { Unit } from '../../lib/units'
 
 /**
- * One length, entered in the document's display unit and stored as millimetres.
+ * One length, entered in the document's display unit and stored as millimetres,
+ * with a label above and an optional hint below.
  *
- * The field keeps its own text while it is being typed — committing on every
- * keystroke would reformat "6" into "6.0" under the caret — and only pushes a
- * value up when the text parses to a positive length. A half-typed or nonsense
- * entry leaves the last good value in the model and says so, rather than
- * putting NaN into a cut size.
+ * The typing behaviour — keep the text while the caret is here, only commit a
+ * value that parses — lives in `useLengthText`, shared with the parts table's
+ * inline version so the two can never drift.
  */
 interface Props {
   label: string
@@ -23,17 +23,7 @@ interface Props {
 export default function LengthField({ label, mm, unit, mmDecimals, onChange, hint, id }: Props) {
   const autoId = useId()
   const fieldId = id ?? autoId
-  const [text, setText] = useState(() => fieldText(mm, unit, mmDecimals))
-  const [editing, setEditing] = useState(false)
-
-  // Re-sync from the model whenever it changes underneath us (a preset, an
-  // example, a shared link) — but never while the field has the caret.
-  useEffect(() => {
-    if (!editing) setText(fieldText(mm, unit, mmDecimals))
-  }, [mm, unit, mmDecimals, editing])
-
-  const parsed = parseLength(text, unit)
-  const invalid = parsed === null || parsed <= 0
+  const { invalid, props } = useLengthText(mm, unit, mmDecimals, onChange)
 
   return (
     <div>
@@ -50,19 +40,8 @@ export default function LengthField({ label, mm, unit, mmDecimals, onChange, hin
               ? 'border-red-400 focus:ring-red-200'
               : 'border-slate-300 focus:border-amber-500 focus:ring-amber-200'
           }`}
-          value={text}
-          aria-invalid={invalid}
           aria-describedby={hint ? `${fieldId}-hint` : undefined}
-          onFocus={() => setEditing(true)}
-          onBlur={() => {
-            setEditing(false)
-            setText(fieldText(mm, unit, mmDecimals))
-          }}
-          onChange={(e) => {
-            setText(e.target.value)
-            const next = parseLength(e.target.value, unit)
-            if (next !== null && next > 0) onChange(next)
-          }}
+          {...props}
         />
         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 pointer-events-none">
           {unit}
