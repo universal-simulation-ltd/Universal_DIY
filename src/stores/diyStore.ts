@@ -10,7 +10,7 @@ import {
   type Design,
   type PanelId,
 } from '../lib/panels'
-import { SHEETS, STOCK, findStock, type Stock } from '../lib/materials'
+import { STOCK, findStock, type Stock } from '../lib/materials'
 import { loadLocal, saveLocal } from '../lib/storage'
 import { readShareFromUrl } from '../lib/share'
 import type { Template } from '../lib/templates'
@@ -45,7 +45,6 @@ export interface DiyState {
   notes: Record<string, string>
   /** Selected stock id, or 'custom' when the thickness was typed by hand. */
   stockId: string
-  sheetId: string
   /** Piece under the pointer — drives the two-way highlight. */
   hover: PanelId | null
   /** Is the wrap-order list revealed? The presets are the primary control. */
@@ -61,7 +60,6 @@ export interface DiyState {
   setGrained: (grained: boolean) => void
   setUnit: (unit: Unit) => void
   setMmDecimals: (dp: 0 | 1) => void
-  setSheet: (id: string) => void
   setNote: (letter: string, text: string) => void
   setHover: (panel: PanelId | null) => void
   setAdvanced: (advanced: boolean) => void
@@ -112,7 +110,6 @@ export const useDiyStore = create<DiyState>((set, get) => {
     notes: start.notes,
     mmDecimals: 1,
     stockId: stockIdFor(start.design),
-    sheetId: SHEETS[0].id,
     hover: null,
     advanced: false,
     origin: start.origin,
@@ -144,7 +141,6 @@ export const useDiyStore = create<DiyState>((set, get) => {
     setGrained: (grained) => patchDesign({ grained }),
     setUnit: (unit) => change({ unit }),
     setMmDecimals: (mmDecimals) => change({ mmDecimals }),
-    setSheet: (sheetId) => change({ sheetId }),
     setNote: (letter, text) => change({ notes: { ...get().notes, [letter]: text } }),
     setHover: (hover) => set({ hover }),
     setAdvanced: (advanced) => set({ advanced }),

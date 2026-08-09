@@ -31,20 +31,29 @@ src/lib/        the product — pure functions, no React, no DOM
   panels.ts     THE MODEL: the wrap order and the size formula
   geometry.ts   the same arithmetic as solids in space; feeds the sections
                 and the exhaustive validity tests
+  parts.ts      THE OTHER MODEL: free pieces, joined per-joint not per-box
+  nest.ts       THE OPTIMISER: guillotine shelf packing, kerf/grain/trim
   diagram.ts    net + section layout, in millimetre space
   units.ts      mm is canonical; display/entry conversion and rounding
   materials.ts  stock thicknesses (exact mm) and the sheet ESTIMATE
   csv.ts        the cutlistoptimizer-shaped export
   share.ts      the whole design in the URL hash
-  storage.ts    localStorage + .unidiy.json, with untrusted-input sanitising
-  route.ts      /diy vs /diy/cutlist
+  storage.ts    localStorage + .unidiy.json + the saw settings, all sanitised
+  route.ts      /diy vs /diy/cutlist vs /diy/parts
   examples.ts   the navbar's example boxes
-src/stores/     one zustand store; the cut list is DERIVED, never stored
-src/components/ presentation only
+src/stores/     diyStore (box) · partsStore (free list) · sheetStore (the saw)
+src/components/ presentation only; components/sheet/ is shared by both pages
 ```
 
-**`src/lib/panels.ts` is the product; everything else is presentation.** If a
-number there is wrong somebody cuts up a sheet of birch ply for nothing.
+**`src/lib/panels.ts` and `src/lib/nest.ts` are the product; everything else is
+presentation.** If a number in either is wrong somebody cuts up a sheet of birch
+ply for nothing.
+
+`sheetStore` is a third store on purpose. The two page stores are separate
+because they hold two different models; kerf, trim and sheet size belong to
+neither — a blade is 3 mm wide whichever page you are on. Keeping them in one
+small shared store is what stops the same three numbers being typed twice and
+then disagreeing.
 
 ## The model, in one paragraph
 
@@ -86,6 +95,22 @@ input has been run, not tested.
 - **Light only, deliberately.** The suite rule is that an app opens light until
   the user asks otherwise; here the deliverable is ink on paper, so there is no
   dark palette and the comment in `index.css` says why.
+- **Orientation is a search variable in `nest.ts`, not a rule.** Opening a strip
+  with the piece laid flat is the right default and is sometimes catastrophically
+  wrong: three ungrained 1180 × 700 panels laid flat need **two** sheets, because
+  a second 700 mm strip will not fit under the first; stood upright they are
+  three 700 mm-wide pieces in one 1180 mm strip and fit on **one**. No amount of
+  reordering finds that — every ordering makes the same wrong turn — so the hill
+  climb can flip a piece as well as move it, and "everything stood up" is one of
+  the fixed starting candidates. **Found by looking at a rendered plan, not by a
+  failing test**, which is the argument for rendering the thing before believing
+  the suite.
+- **Perturb the best order; do not shuffle.** Measured: full random restarts
+  improved the layout on one of five realistic cut lists and never saved a sheet.
+  First-fit-decreasing is already at the area lower bound on realistic input, so
+  a random permutation is so much worse that best-of-2000 just re-elects the
+  heuristic. What the search actually buys is a deeper single offcut, not a
+  sheet.
 - **`product: 'diy'` is written with no cast.** `'diy'` is a real member of the
   SDK's `ProductCode` union (≥ 0.85.0) *and* a real value in the Postgres
   `product_code` enum (universal-platform migration 0112). If the compiler ever
@@ -110,43 +135,44 @@ places it could not be:
    the Notes column carries the exceptions. Making it per-piece editable would
    need a second persisted record for very little.
 3. **Grain is `along length` or `none`.** §14's column allows `along width` too,
-   but nothing in v1 can produce it: the length *is* defined as the
-   along-the-grain dimension. The value stays in the type for the Phase 2
-   optimiser, which is where a rotated piece becomes meaningful.
+   but nothing produces it: the length *is* defined as the along-the-grain
+   dimension. The optimiser did not change that — it rotates a *placement* and
+   records `rotated` on it, which is a fact about the sheet, not about the piece.
 
-## Still to do — owner-gated
+## The optimiser, and where §14's plan needed correcting
 
-Nothing in this list can be done from inside this repo.
+Shipped 2026-08-09. Guillotine shelf packing with a seeded search, in `nest.ts`,
+rendered by `components/sheet/SheetPlan.tsx` on **both** pages.
 
-1. **Create the public GitHub repo** `universal-simulation-ltd/Universal_DIY` and
-   push. Deliberately not done here.
-2. **Migration first, then go live.** `alter type product_code add value if not
-   exists 'diy';` — *check* whether universal-platform migration 0112 has actually
-   been applied to prod. The SDK type already lists `'diy'` as coming from 0112,
-   but the type is kept in sync by hand, so the type saying so is not evidence the
-   database agrees. It must land before a signed-in visitor opens the app, or
-   every usage insert fails — quietly, because the SDK drops events when there is
-   no session.
-3. **Cloudflare Pages project `universal-diy`** (a clean name, never issued, so it
-   gets a suffix-free `universal-diy.pages.dev`).
-4. **`'/diy'` in `backoffice/opensource-portal/src/worker.js` `TARGETS`**, plus a
-   portal tile in its `public/index.html`. The portal groups tiles Every
-   Day · Business · Geeky; **Geeky** is the least-wrong home today.
-5. **Suite changelog entry** once it is live.
-6. **`UNISIM_Compare` entry — hold it.** Until a sheet optimiser ships,
-   `features.optimiser` is a ✗ against cutlistoptimizer's ✓ on the row most
-   visitors care about, and a comparison table we lose is worse than no table.
+Two places the scope-out's recipe was wrong, both found by measuring:
 
-## Phase 2 and beyond
+1. **"Randomised-restart search over the piece ordering" does almost nothing.**
+   Measured over five realistic cut lists at 0 / 50 / 400 / 2000 restarts: it
+   improved one of them and **never saved a sheet**. The reason is the good news —
+   first-fit-decreasing already hits the **area lower bound** (no layout of any
+   kind can use fewer sheets than the total piece area needs) on realistic input,
+   so there is no sheet left to save and a random permutation is far too poor to
+   beat the heuristic. Replaced with a hill climb that perturbs the best
+   candidate. What the search buys is a deeper single offcut.
+2. **The ordering is not the only decision.** See the orientation landmine above.
+   That one *does* save whole sheets, and no reordering search can reach it.
 
-- **Phase 2, and it is the priority: the guillotine sheet optimiser.** Hobbyists
-  cut on a table or track saw, so the correct problem is **guillotine-constrained**
-  2D bin packing, not free nesting — easier *and* the only kind of layout they can
-  physically cut. Shelf / first-fit-decreasing with randomised restarts, kept
-  deterministic. It must model kerf (default 3 mm), grain lock and a trim
-  allowance. Do not reach for an exact solver or a generic nesting library.
-- **Phase 3: per-panel thickness.** The formula already supports it — the
-  deductions are per-neighbour, so `t` becomes `t(neighbour)`. The cost is input
-  surface, not arithmetic.
-- **Three.js: demoted, probably never.** Decorative at best, and it implies an
-  editability the app refuses.
+Both are why the honest claim in the UI is "a good layout, not a proven optimum"
+with the determinism stated next to it, rather than a percentage.
+
+## Still to do
+
+1. **`UNISIM_Compare` entry — now due.** It was held on exactly one condition:
+   until a sheet optimiser shipped, `features.optimiser` was a ✗ against
+   cutlistoptimizer's ✓ on the row most visitors care about. That condition has
+   gone. The entry still needs the competitor rows **verified rather than
+   recalled** before any ✗ is claimed against a named product.
+2. **Phase 3: per-panel thickness.** The formula already supports it — the
+   deductions are per-neighbour, so `t` becomes `t(neighbour)`. The cost is input
+   surface, not arithmetic.
+3. **Three.js: demoted, probably never.** Decorative at best, and it implies an
+   editability the app refuses.
+
+Launch is done: the public repo exists, the Pages project is live behind
+`opensource.unisim.co.uk/diy` (via `'/diy': 'https://unisim-diy.pages.dev'` in
+the portal Worker's `TARGETS`), and the portal tile is up.

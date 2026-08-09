@@ -11,12 +11,15 @@
 //   * the URL hash (share.ts), for sending one to somebody.
 // ---------------------------------------------------------------------------
 
+import { SHEETS } from './materials'
+import { DEFAULT_KERF, DEFAULT_TRIM } from './nest'
 import { PANEL_IDS, isValidOrder, type Design, type PanelId } from './panels'
 import { END_IDS, type Joint, type Part, type PartsProject } from './parts'
 import type { Unit } from './units'
 
 const KEY = 'unisim.diy.design.v1'
 const PARTS_KEY = 'unisim.diy.parts.v1'
+const SAW_KEY = 'unisim.diy.saw.v1'
 export const FILE_KIND = 'unisim.universal-diy.design'
 export const PARTS_FILE_KIND = 'unisim.universal-diy.parts'
 export const FILE_VERSION = 1
@@ -256,6 +259,59 @@ export function fromPartsFile(json: string): PersistedParts | null {
     }
   } catch {
     return null
+  }
+}
+
+// --- the saw ----------------------------------------------------------------
+//
+// Kerf, trim and sheet size are facts about somebody's SAW and somebody's
+// TIMBER MERCHANT, not about the thing they are building. They belong to the
+// person, so they are stored once and shared by both pages and every project —
+// setting your blade width again for each new box would be the same answer
+// typed over and over. This is also why they are not in the project file or the
+// share link: a design sent to somebody else must not silently re-specify their
+// saw.
+
+export interface SawSettings {
+  sheetId: string
+  /** mm. */
+  kerf: number
+  /** mm. */
+  trim: number
+}
+
+export const DEFAULT_SAW: SawSettings = {
+  sheetId: SHEETS[0].id,
+  kerf: DEFAULT_KERF,
+  trim: DEFAULT_TRIM,
+}
+
+/** Clamp rather than reject: a silly kerf should not lose the other two fields. */
+export function sanitiseSaw(input: unknown): SawSettings {
+  const raw = (input ?? {}) as Partial<SawSettings>
+  const number = (v: unknown, fallback: number, max: number) =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.min(v, max) : fallback
+  return {
+    sheetId: SHEETS.some((s) => s.id === raw.sheetId) ? (raw.sheetId as string) : DEFAULT_SAW.sheetId,
+    kerf: number(raw.kerf, DEFAULT_SAW.kerf, 50),
+    trim: number(raw.trim, DEFAULT_SAW.trim, 200),
+  }
+}
+
+export function loadSaw(): SawSettings {
+  try {
+    const raw = localStorage.getItem(SAW_KEY)
+    return raw ? sanitiseSaw(JSON.parse(raw)) : { ...DEFAULT_SAW }
+  } catch {
+    return { ...DEFAULT_SAW }
+  }
+}
+
+export function saveSaw(settings: SawSettings): void {
+  try {
+    localStorage.setItem(SAW_KEY, JSON.stringify(settings))
+  } catch {
+    // As above — a quota failure is not worth interrupting a cut list for.
   }
 }
 

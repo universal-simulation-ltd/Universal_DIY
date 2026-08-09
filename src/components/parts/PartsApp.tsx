@@ -1,6 +1,7 @@
 import { CONTAINER } from '../../lib/layout'
 import { hrefFor, navigate } from '../../lib/route'
 import { usePartsCutlist, usePartsStore } from '../../stores/partsStore'
+import SheetPlan from '../sheet/SheetPlan'
 import JoinBoard from './JoinBoard'
 import PartsCutList from './PartsCutList'
 import PartsExports from './PartsExports'
@@ -17,6 +18,8 @@ import PartsTable from './PartsTable'
  */
 export default function PartsApp() {
   const project = usePartsStore((s) => s.project)
+  const unit = usePartsStore((s) => s.unit)
+  const mmDecimals = usePartsStore((s) => s.mmDecimals)
   const cutlist = usePartsCutlist()
   const blocked = cutlist.errors.length > 0
 
@@ -64,6 +67,22 @@ export default function PartsApp() {
           <>
             <JoinBoard project={project} cutlist={cutlist} />
             <PartsCutList project={project} cutlist={cutlist} />
+            {/* Each row carries its OWN material and thickness, so a list that
+                mixes an 18 mm carcass with a 6 mm back gets two plans. Packing
+                them together would be a drawing of something impossible. */}
+            <SheetPlan
+              pieces={cutlist.types.map((t) => ({
+                label: t.letter,
+                length: t.length,
+                width: t.width,
+                qty: t.qty,
+                grained: t.grain !== 'none',
+                material: t.material ?? '',
+                thickness: t.thickness,
+              }))}
+              unit={unit}
+              mmDecimals={mmDecimals}
+            />
             <PartsExports project={project} cutlist={cutlist} />
           </>
         )}

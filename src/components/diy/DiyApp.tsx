@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { CONTAINER } from '../../lib/layout'
 import { currentRoute, hrefFor, navigate } from '../../lib/route'
 import { useCutlist, useDiyStore } from '../../stores/diyStore'
+import SheetPlan from '../sheet/SheetPlan'
 import BoxInputs from './BoxInputs'
 import CutList from './CutList'
 import Diagram from './Diagram'
@@ -10,6 +11,8 @@ import WrapOrder from './WrapOrder'
 
 export default function DiyApp() {
   const design = useDiyStore((s) => s.design)
+  const unit = useDiyStore((s) => s.unit)
+  const mmDecimals = useDiyStore((s) => s.mmDecimals)
   const cutlist = useCutlist()
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -83,6 +86,22 @@ export default function DiyApp() {
               <div ref={listRef}>
                 <CutList design={design} cutlist={cutlist} />
               </div>
+              {/* A box is one material by definition, so every piece carries the
+                  design's own — the grouping in SheetPlan collapses to one
+                  plan here and earns its keep on the parts page. */}
+              <SheetPlan
+                pieces={cutlist.types.map((t) => ({
+                  label: t.letter,
+                  length: t.length,
+                  width: t.width,
+                  qty: t.qty,
+                  grained: design.grained,
+                  material: design.material,
+                  thickness: design.thickness,
+                }))}
+                unit={unit}
+                mmDecimals={mmDecimals}
+              />
               <Exports design={design} cutlist={cutlist} />
             </>
           )}

@@ -52,8 +52,9 @@ export default function CutList({ design, cutlist }: { design: Design; cutlist: 
         </p>
         <p className="mt-1 text-xs text-slate-500">
           Length is always the along-the-grain dimension. Good face out on every piece unless a note
-          says otherwise. Butt joints throughout — no allowance for saw kerf, which affects how many
-          pieces fit on a sheet, never how big a piece is.
+          says otherwise. Butt joints throughout. These sizes carry no allowance for saw kerf, and
+          they should not: the kerf changes how many pieces fit on a sheet, never how big a piece
+          is. The cutting plan is where it gets counted.
         </p>
       </header>
 

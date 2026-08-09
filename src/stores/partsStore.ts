@@ -38,7 +38,6 @@ export interface PartsState {
   mmDecimals: 0 | 1
   /** Free text per piece letter, printed in the Notes column. */
   notes: Record<string, string>
-  sheetId: string
   /**
    * The end waiting for a partner, or null. The whole join interaction is this
    * one field: click an end to arm it, click a second to make the joint.
@@ -50,7 +49,6 @@ export interface PartsState {
   setName: (name: string) => void
   setUnit: (unit: Unit) => void
   setMmDecimals: (dp: 0 | 1) => void
-  setSheet: (id: string) => void
   setNote: (letter: string, text: string) => void
 
   patchPart: (id: string, patch: Partial<Part>) => void
@@ -92,14 +90,12 @@ export const usePartsStore = create<PartsState>((set, get) => {
     unit: start.unit,
     notes: start.notes,
     mmDecimals: 1,
-    sheetId: '2440x1220',
     arming: null,
     refusal: null,
 
     setName: (name) => patchProject({ name }),
     setUnit: (unit) => change({ unit }),
     setMmDecimals: (mmDecimals) => change({ mmDecimals }),
-    setSheet: (sheetId) => change({ sheetId }),
     setNote: (letter, text) => change({ notes: { ...get().notes, [letter]: text } }),
 
     patchPart: (id, patch) =>

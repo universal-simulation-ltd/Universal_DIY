@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react'
 import { downloadCsv, safeFilename, toCsv } from '../../lib/csv'
-import { SHEETS, estimateSheets } from '../../lib/materials'
+import { estimateSheets } from '../../lib/materials'
 import { type PartsCutlist, type PartsProject } from '../../lib/parts'
 import { downloadJson, fromPartsFile, toPartsFile } from '../../lib/storage'
 import { areaM2 } from '../../lib/units'
 import { usePartsStore } from '../../stores/partsStore'
+import { useSheet } from '../../stores/sheetStore'
 
 /**
  * Take-it-to-the-workshop, for a free parts list.
@@ -21,14 +22,12 @@ import { usePartsStore } from '../../stores/partsStore'
 export default function PartsExports({ project, cutlist }: { project: PartsProject; cutlist: PartsCutlist }) {
   const unit = usePartsStore((s) => s.unit)
   const notes = usePartsStore((s) => s.notes)
-  const sheetId = usePartsStore((s) => s.sheetId)
-  const setSheet = usePartsStore((s) => s.setSheet)
   const replace = usePartsStore((s) => s.replace)
   const fileInput = useRef<HTMLInputElement>(null)
   const [loadError, setLoadError] = useState('')
 
   const stem = safeFilename(project.name, 'cut')
-  const sheet = SHEETS.find((s) => s.id === sheetId) ?? SHEETS[0]
+  const sheet = useSheet()
   const estimate = estimateSheets(
     cutlist.totalArea,
     cutlist.types.map((t) => ({ label: t.letter, length: t.length, width: t.width })),
@@ -106,34 +105,23 @@ export default function PartsExports({ project, cutlist }: { project: PartsProje
       </p>
 
       <div className="mt-4 border-t border-slate-200 pt-3">
-        <h3 className="mb-2 text-sm font-semibold text-slate-900">How much do I buy?</h3>
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label htmlFor="parts-sheet" className="mb-1 block text-xs font-medium text-slate-600">Sheet size</label>
-            <select
-              id="parts-sheet"
-              value={sheetId}
-              onChange={(e) => setSheet(e.target.value)}
-              className="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-amber-500"
-            >
-              {SHEETS.map((s) => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
-          </div>
-          <p className="text-sm text-slate-800">
-            <span className="tnum font-semibold">{areaM2(cutlist.totalArea).toFixed(2)} m²</span> of panel —
-            about <span className="tnum font-semibold">{estimate.sheets}</span>{' '}
-            {estimate.sheets === 1 ? 'sheet' : 'sheets'} of {sheet.label}.
-          </p>
-        </div>
-        <p className="mt-2 text-xs text-slate-500">{estimate.caveat}</p>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900">The rough area check</h3>
+        <p className="text-sm text-slate-800">
+          <span className="tnum font-semibold">{areaM2(cutlist.totalArea).toFixed(2)} m²</span> of panel —
+          about <span className="tnum font-semibold">{estimate.sheets}</span>{' '}
+          {estimate.sheets === 1 ? 'sheet' : 'sheets'} of {sheet.label}.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          {estimate.caveat} The cutting plan above is the number to buy against — it is a real
+          layout, and unlike this figure it splits the list by material. Expect this one to be the
+          optimistic one.
+        </p>
 
         {stocks.length > 1 && (
           <p className="mt-1 text-xs text-amber-800">
             This list mixes {stocks.length} stocks ({stocks.join(', ')}). The figure above adds all
-            of their areas together, which is not a thing you can buy — work out one stock at a
-            time.
+            of their areas together, which is not a thing you can buy — the cutting plan does one
+            sheet count per stock, which is.
           </p>
         )}
 
