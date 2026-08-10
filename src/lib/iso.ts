@@ -26,7 +26,7 @@
 // drift, and the first thing anyone would trust.
 // ---------------------------------------------------------------------------
 
-import { solids, type Solid } from './geometry'
+import { solids, type Interval, type Solid } from './geometry'
 import { PANEL_AXIS, PANEL_END, type Axis, type Design, type PanelId } from './panels'
 
 export interface Vec3 { x: number; y: number; z: number }
@@ -147,6 +147,99 @@ export function facesOf(solid: Solid, view: View, shift: Vec3 = { x: 0, y: 0, z:
   return out
 }
 
+// --- depth order ------------------------------------------------------------
+//
+// ⚠️ SORTING FACES BY CENTROID DEPTH IS NOT ENOUGH, and the failure is ugly:
+// you see the INSIDE of the box. Back-face culling keeps the faces pointing at
+// the camera, but on a closed carcass the far-left panel's INNER face points at
+// the camera too — it is the wall of the cavity you would see if the near side
+// were not there. Whether it is correctly hidden depends entirely on draw
+// order, and a panel is a thin slab whose two faces are 18 mm apart while its
+// projected area is enormous. Centroids interleave, near panels get drawn
+// first, and the box turns inside out at some angles and not others.
+//
+// The exact fix is available here for free, because these six panels are
+// AXIS-ALIGNED and DISJOINT (`checkValidity` walks all 720 wrap orders proving
+// it). Two disjoint AABBs are always separated along at least one axis, and
+// along that axis "which one is farther from the camera" is decided by the sign
+// of the view direction — no approximation. That gives a partial order over the
+// solids, and a topological sort turns it into an exact back-to-front sequence.
+
+type BoxLike = { x: Interval; y: Interval; z: Interval }
+
+const AXIS_KEYS: Array<keyof BoxLike> = ['x', 'y', 'z']
+
+/**
+ * Which of two disjoint boxes must be drawn first, or 0 if it does not matter.
+ *
+ * Returns -1 when `a` is farther (draw a first), 1 when `b` is. Picks the
+ * separating axis most square-on to the camera: an axis the camera is looking
+ * along edge-on separates the boxes in space but says nothing about which is in
+ * front, and trusting it produces a coin-flip.
+ */
+function farther(a: BoxLike, b: BoxLike, dir: Vec3): number {
+  const EPS = 1e-6
+  let best = 0
+  let strength = 0
+  for (const k of AXIS_KEYS) {
+    const d = k === 'x' ? dir.x : k === 'y' ? dir.y : dir.z
+    if (Math.abs(d) <= strength) continue
+    let order = 0
+    if (a[k].max <= b[k].min + EPS) order = -1 // a sits lower along k
+    else if (b[k].max <= a[k].min + EPS) order = 1
+    if (order === 0) continue
+    // A higher coordinate is nearer the camera when the view direction points
+    // that way. Flip the verdict when it does not.
+    best = d > 0 ? order : -order
+    strength = Math.abs(d)
+  }
+  return best
+}
+
+/** Indices of `boxes`, farthest first. */
+export function orderSolids(boxes: readonly BoxLike[], dir: Vec3): number[] {
+  const n = boxes.length
+  const after: number[][] = Array.from({ length: n }, () => [])
+  const indegree = new Array<number>(n).fill(0)
+
+  for (let i = 0; i < n; i += 1) {
+    for (let j = i + 1; j < n; j += 1) {
+      const verdict = farther(boxes[i], boxes[j], dir)
+      if (verdict < 0) { after[i].push(j); indegree[j] += 1 }
+      else if (verdict > 0) { after[j].push(i); indegree[i] += 1 }
+    }
+  }
+
+  // Kahn's algorithm, taking the deepest available box first so that boxes with
+  // no constraint between them still come out in a sensible order.
+  const depth = boxes.map((b) => ((b.x.min + b.x.max) / 2) * dir.x + ((b.y.min + b.y.max) / 2) * dir.y + ((b.z.min + b.z.max) / 2) * dir.z)
+  const out: number[] = []
+  const ready = new Set<number>()
+  for (let i = 0; i < n; i += 1) if (indegree[i] === 0) ready.add(i)
+
+  while (ready.size) {
+    let pick = -1
+    for (const i of ready) if (pick === -1 || depth[i] < depth[pick]) pick = i
+    ready.delete(pick)
+    out.push(pick)
+    for (const j of after[pick]) {
+      indegree[j] -= 1
+      if (indegree[j] === 0) ready.add(j)
+    }
+  }
+
+  // A cycle is impossible for disjoint AABBs, but a NaN dimension from a
+  // corrupt design could manufacture one. Fall back to depth order for whatever
+  // is left rather than silently dropping panels out of the picture.
+  if (out.length < n) {
+    const missing = []
+    for (let i = 0; i < n; i += 1) if (!out.includes(i)) missing.push(i)
+    missing.sort((a, b) => depth[a] - depth[b])
+    out.push(...missing)
+  }
+  return out
+}
+
 // --- the whole scene --------------------------------------------------------
 
 export interface Scene {
@@ -165,10 +258,12 @@ export interface Scene {
  * same thing in two dimensions; this says it in one picture.
  */
 export function scene(design: Design, view: View, explode = 0): Scene {
-  const all = solids(design)
-  const faces: Face[] = []
+  const { dir } = basis(view)
 
-  for (const solid of all) {
+  // Shift first, then sort: the explosion moves the panels, so an order worked
+  // out from their assembled positions would be wrong the moment the slider
+  // leaves zero.
+  const placed = solids(design).map((solid) => {
     const normal: Axis = PANEL_AXIS[solid.panel]
     const away = PANEL_END[solid.panel] === 'min' ? -1 : 1
     // Scaled by the box's own size, not by a fixed number of millimetres: a
@@ -177,13 +272,23 @@ export function scene(design: Design, view: View, explode = 0): Scene {
     const reach = Math.max(design.width, design.depth, design.height) * 0.35 * explode
     const shift: Vec3 = { x: 0, y: 0, z: 0 }
     shift[normal] = away * reach
-    faces.push(...facesOf(solid, view, shift))
-  }
+    return {
+      solid,
+      shift,
+      box: {
+        x: { min: solid.x.min + shift.x, max: solid.x.max + shift.x },
+        y: { min: solid.y.min + shift.y, max: solid.y.max + shift.y },
+        z: { min: solid.z.min + shift.z, max: solid.z.max + shift.z },
+      },
+    }
+  })
 
-  // Painter's algorithm: farthest first. Exact for the disjoint, axis-aligned,
-  // back-face-culled slabs this app produces — `checkValidity` is what
-  // guarantees they are disjoint, so the sort has nothing pathological to sort.
-  faces.sort((a, b) => a.depth - b.depth)
+  const faces: Face[] = []
+  for (const i of orderSolids(placed.map((p) => p.box), dir)) {
+    // Within one solid its visible faces cannot occlude each other — they meet
+    // at edges and face away from one another — so any order will do.
+    faces.push(...facesOf(placed[i].solid, view, placed[i].shift))
+  }
 
   const xs = faces.flatMap((f) => f.points.map((p) => p.x))
   const ys = faces.flatMap((f) => f.points.map((p) => p.y))

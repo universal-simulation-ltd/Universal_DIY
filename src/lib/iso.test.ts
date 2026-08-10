@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_VIEW, clampPitch, facesOf, projectPoint, scene, shadeOf, type View } from './iso'
+import { DEFAULT_VIEW, clampPitch, facesOf, projectPoint, scene, shadeOf, type Face, type View } from './iso'
 import { solidFor, solids } from './geometry'
 import { emptyDesign, type Design } from './panels'
 
@@ -79,11 +79,79 @@ describe('you only ever see the outside of a solid', () => {
 })
 
 describe('the scene', () => {
-  it('draws farthest first, so nearer panels land on top', () => {
-    const { faces } = scene(design, DEFAULT_VIEW)
-    for (let i = 1; i < faces.length; i += 1) {
-      expect(faces[i].depth).toBeGreaterThanOrEqual(faces[i - 1].depth)
+  it('never lets a panel behind another one draw on top of it, at any angle', () => {
+    // ⚠️ THE REGRESSION TEST. Sorting faces by centroid depth showed the INSIDE
+    // of the box at some angles: back-face culling keeps a far panel's inner
+    // face (it does point at the camera — it is the cavity wall), and on a thin
+    // slab whose two faces are 18 mm apart but whose projected area is huge,
+    // centroids interleave and the near panels get drawn first.
+    //
+    // The property that has to hold is exact and checkable: whenever two panels
+    // are separated along an axis, every face of the farther one must come
+    // before every face of the nearer one.
+    // Only pairs with ONE decisive separating axis are checked, and that is not
+    // a dodge. Two boxes separated along two axes at once (which the explosion
+    // creates) have two candidate orderings that can disagree, and when they do
+    // it is because the two boxes do not overlap on screen at all — so the draw
+    // order between them is unobservable. The single-axis pairs are the ones
+    // whose order you can actually see, and the closed box is entirely made of
+    // them, which is exactly where the bug showed.
+    const angles: View[] = []
+    for (let yaw = -Math.PI; yaw < Math.PI; yaw += Math.PI / 12) {
+      for (const pitch of [-0.9, -0.3, 0.05, 0.42, 1.1]) angles.push({ yaw, pitch })
     }
+
+    let checked = 0
+    for (const view of angles) {
+      const { faces } = scene(design, view, 0)
+      const first = new Map<string, number>()
+      const last = new Map<string, number>()
+      faces.forEach((f, i) => {
+        if (!first.has(f.panel)) first.set(f.panel, i)
+        last.set(f.panel, i)
+      })
+
+      const dir = {
+        x: Math.cos(view.pitch) * Math.cos(view.yaw),
+        y: Math.cos(view.pitch) * Math.sin(view.yaw),
+        z: Math.sin(view.pitch),
+      }
+      const boxes = solids(design)
+      for (const a of boxes) {
+        for (const b of boxes) {
+          if (a.panel === b.panel) continue
+          if (first.get(a.panel) === undefined || first.get(b.panel) === undefined) continue
+          const axes = (['x', 'y', 'z'] as const).filter(
+            (k) => Math.abs(dir[k]) >= 0.2 && a[k].max <= b[k].min + 1e-6,
+          )
+          const other = (['x', 'y', 'z'] as const).filter(
+            (k) => Math.abs(dir[k]) >= 0.2 && b[k].max <= a[k].min + 1e-6,
+          )
+          if (axes.length + other.length !== 1) continue
+          const k = axes[0] ?? other[0]
+          // Whichever sits lower along k is farther when the view points that way.
+          const lower = axes.length ? a : b
+          const upper = axes.length ? b : a
+          const far = dir[k] > 0 ? lower : upper
+          const near = far === lower ? upper : lower
+          expect(last.get(far.panel)!).toBeLessThan(first.get(near.panel)!)
+          checked += 1
+        }
+      }
+    }
+    // A test that checked nothing would pass silently.
+    expect(checked).toBeGreaterThan(200)
+  })
+
+  it('the old centroid sort would have failed that', () => {
+    // Proves the test above can fail, rather than passing because the property
+    // is trivially true. Sorting the same faces by centroid depth — exactly
+    // what shipped — puts at least one near panel before a panel behind it.
+    const view: View = { yaw: -0.61, pitch: 0.42 }
+    const { faces } = scene(design, view, 0)
+    const byCentroid = [...faces].sort((a, b) => a.depth - b.depth)
+    const orderOf = (list: Face[]) => list.map((f) => f.panel)
+    expect(orderOf(byCentroid)).not.toEqual(orderOf(faces))
   })
 
   it('shows only the outside of a closed box — six panels, three faces each at most', () => {

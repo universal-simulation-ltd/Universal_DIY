@@ -210,6 +210,18 @@ Two things worth knowing if you touch it:
 - ⚠️ **A face exactly edge-on must be culled, not drawn.** It projects to a
   zero-width sliver and renders as a stray black line across the picture. The
   cull is `normal · viewDir > 0`, strictly greater.
+- ⚠️ **Back-face culling is NOT enough to stop you seeing inside the box, and
+  sorting faces by centroid depth is not either.** A far panel's INNER face
+  does point at the camera — it is the cavity wall — so culling keeps it, and
+  whether it is correctly hidden is purely a question of draw order. A panel is
+  a thin slab whose two faces are 18 mm apart while its projected area is huge,
+  so centroids interleave, near panels get drawn first, and **the box turns
+  inside out at some angles and not others** (reported from a screenshot, with
+  all 18 projection tests passing). The fix is exact rather than heuristic:
+  these panels are axis-aligned and disjoint, two disjoint AABBs are always
+  separated along some axis, and along that axis the sign of the view direction
+  decides which is farther. `orderSolids()` builds that partial order and
+  topologically sorts it. Faces are then emitted per solid, never re-sorted.
 
 ## Still to do
 
