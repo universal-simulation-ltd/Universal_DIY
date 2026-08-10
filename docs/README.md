@@ -29,8 +29,9 @@ claim on the page literally true.
 ```
 src/lib/        the product — pure functions, no React, no DOM
   panels.ts     THE MODEL: the wrap order and the size formula
-  geometry.ts   the same arithmetic as solids in space; feeds the sections
-                and the exhaustive validity tests
+  geometry.ts   the same arithmetic as solids in space; feeds the sections,
+                the 3D view, and the exhaustive validity tests
+  iso.ts        orthographic projection of those solids — the 3D view
   parts.ts      THE OTHER MODEL: free pieces, joined per-joint not per-box
   nest.ts       THE OPTIMISER: guillotine shelf packing, kerf/grain/trim
   diagram.ts    net + section layout, in millimetre space
@@ -174,6 +175,42 @@ Two places the scope-out's recipe was wrong, both found by measuring:
 Both are why the honest claim in the UI is "a good layout, not a proven optimum"
 with the determinism stated next to it, rather than a percentage.
 
+## The 3D view, and why the old objection did not actually forbid it
+
+`lib/iso.ts` + `components/diy/Solid3D.tsx`, shipped 2026-08-10.
+
+The scope-out and this repo both said a 3D preview was demoted to "probably
+never", for a stated reason: **you cannot read dimensions off a perspective view,
+and it cannot be printed.** Both halves of that are true, and neither is about
+three dimensions — they are about **perspective** and about **WebGL**. An
+orthographic projection rendered as SVG has neither problem. So the decision was
+not overturned; it was read properly.
+
+What that buys, and what it costs:
+
+- **No dependency.** ~150 lines of matrix arithmetic. A 3D engine would have
+  tripled the bundle of an app whose promise is that it is arithmetic in your
+  browser, and would not print.
+- **It is a VIEW of `geometry.ts`**, not a second model. `solids()` is already
+  walked by the exhaustive 720-order validity tests, so the picture inherits
+  that check. Any 3D view that built its own boxes would be free to drift.
+- **`iso.test.ts` asserts the orthographic property directly** — a 400 mm edge
+  projects to the same screen length at the front of the box and at the back,
+  and parallel edges stay parallel. That test is the one that earns the feature;
+  without it "orthographic" is a claim in a comment.
+- **The explode slider is the feature, not the rotation.** A closed box hides
+  every joint it has.
+
+Two things worth knowing if you touch it:
+
+- ⚠️ **Every panel shows three faces from any general angle**, so labelling
+  *faces* wrote each piece's letter three times, twice of them squeezed onto an
+  18 mm edge. Labels go on the largest visible face **per panel**, sized by the
+  projected polygon's area — the area you can see, not the area in the model.
+- ⚠️ **A face exactly edge-on must be culled, not drawn.** It projects to a
+  zero-width sliver and renders as a stray black line across the picture. The
+  cull is `normal · viewDir > 0`, strictly greater.
+
 ## Still to do
 
 1. **Phase 3: per-panel thickness.** The formula already supports it — the
@@ -184,8 +221,9 @@ with the determinism stated next to it, rather than a percentage.
    (**Offcuts as stock shipped 2026-08-10** — `nest()` takes a `StockUnit` list,
    offcuts first, and `score()` counts SHEETS BOUGHT rather than sheets used, so
    a plan that eats four offcuts and one sheet beats one that buys two.)
-3. **Three.js: demoted, probably never.** Decorative at best, and it implies an
-   editability the app refuses.
+A 3D view **shipped 2026-08-10** — see below. The old "Three.js: demoted,
+probably never" entry is gone from this list, but note *how* it shipped: not by
+reversing the reasoning, by noticing the reasoning was about something else.
 
 The `UNISIM_Compare` entry is **done** (2026-08-10, `/comparisons/diy` — vs
 CutList Optimizer, OptiCutter, MaxCut and OpenCutList). ⚠️ Its competitor claims

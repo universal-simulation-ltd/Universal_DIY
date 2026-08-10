@@ -33,6 +33,8 @@ Part of the [Universal Apps](https://opensource.unisim.co.uk) suite by
   **wrap order**. See below; it is the whole point.
 - **Millimetres, centimetres or inches**, one display unit for the whole
   document. Inches print as the nearest 1/32″ with the exact decimal alongside.
+- **A 3D view of the assembled box** — drag to turn it, and pull it apart to see
+  which panel runs through and which butts into it. See below.
 - **A scale exploded diagram** — an unfolded net plus a plan and an elevation
   cross-section, because a net shows sizes but cannot show which panel laps
   which.
@@ -183,7 +185,29 @@ better elsewhere (Fusion 360, SketchUp + OpenCutList, Boxes.py, OpenSCAD).
 | Curves, tapers, non-rectangular boxes | The model assumes axis-aligned rectangles throughout. |
 | Per-panel thickness | One thickness per box for now. The formula already supports it; the input surface is the cost. |
 | Free nesting | The cutting plan is deliberately **guillotine-only** — see below. A tighter layout that no table saw can cut is not a better layout. |
-| 3D preview | You cannot read dimensions off a perspective view, and it cannot be printed. Two orthogonal sections show everything a rotatable box would. |
+| A *perspective* 3D preview | You cannot read dimensions off a perspective view. The 3D view below is **orthographic** for exactly that reason — see below. |
+
+## The 3D view
+
+Drag the box to turn it; pull the slider and it comes apart. The exploded view is
+the point rather than the decoration: a closed box hides every joint it has, and
+pulling the panels out along their own normals is the one picture that shows the
+wrap order — which panel runs through to the outside and which butts into it —
+without reading a cross-section.
+
+**It is orthographic, and it is SVG.** This project said for a long time that it
+would never have a 3D preview, on the grounds that you cannot read dimensions off
+a perspective view and it cannot be printed. Both objections are to *perspective*
+and to *WebGL*, not to three dimensions. Under an orthographic projection
+parallel edges stay parallel and a 400 mm edge is 400 mm wherever it sits in the
+picture, so nothing is distorted; and being SVG, it prints with the rest of the
+sheet. There is no 3D library — it is about 150 lines of matrix arithmetic in
+[`src/lib/iso.ts`](src/lib/iso.ts), which is a fraction of what a WebGL engine
+would add to an app whose whole promise is that it is arithmetic in your browser.
+
+It is drawn from the **same solids** as the cross-sections and the validity
+tests, so it is a view of the checked model rather than a second model of the box
+that would be free to drift from the first.
 
 ## The cutting plan
 

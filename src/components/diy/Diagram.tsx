@@ -2,6 +2,7 @@ import { netLayout, sectionLayout, type Rect } from '../../lib/diagram'
 import { formatShort } from '../../lib/units'
 import type { Cutlist, Design, PanelId } from '../../lib/panels'
 import { useDiyStore } from '../../stores/diyStore'
+import Solid3D from './Solid3D'
 
 /**
  * The 2D exploded diagram — a net and two cross-sections, all drawn to a common
@@ -24,6 +25,12 @@ export default function Diagram({ design, cutlist }: { design: Design; cutlist: 
 
   return (
     <div className="space-y-4">
+      {/* The solid first: it is the only drawing that answers "what am I
+          building" at a glance, and it is the one somebody checks their idea
+          against before reading a single number. The net and the sections
+          follow, because they are what you actually cut from. */}
+      <Solid3D design={design} cutlist={cutlist} />
+
       <Drawing
         id="net"
         title="Every piece, flat — as it will be cut"
