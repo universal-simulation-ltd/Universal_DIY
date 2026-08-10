@@ -27,17 +27,28 @@ export default function SheetPlan({ pieces, unit, mmDecimals }: Props) {
   const sheet = useSheet()
   const kerf = useSheetStore((s) => s.kerf)
   const trim = useSheetStore((s) => s.trim)
+  const offcuts = useSheetStore((s) => s.offcuts)
   const setSheet = useSheetStore((s) => s.setSheet)
   const setKerf = useSheetStore((s) => s.setKerf)
   const setTrim = useSheetStore((s) => s.setTrim)
+  const addOffcut = useSheetStore((s) => s.addOffcut)
+  const patchOffcut = useSheetStore((s) => s.patchOffcut)
+  const removeOffcut = useSheetStore((s) => s.removeOffcut)
 
   // Memoised on the inputs, not on the render. The packer runs a few hundred
   // packs and is a pure function of exactly these arguments, so re-running it
   // because a tooltip opened would be pure waste — and it is the only thing in
   // this app expensive enough for that to be worth a line.
-  const key = JSON.stringify([pieces, sheet.id, kerf, trim])
+  const key = JSON.stringify([pieces, sheet.id, kerf, trim, offcuts])
   const plans = useMemo(
-    () => groupForNesting(pieces).map((group) => ({ group, result: nest(group.pieces, { sheet, kerf, trim }) })),
+    // ⚠️ The offcut list is passed to EVERY group, which is right for a box (one
+    // material) and a deliberate simplification for a mixed parts list: an
+    // offcut has no material recorded against it, so "my 1200 × 600" is offered
+    // to the 18 mm plan and the 6 mm plan alike. Making that correct means
+    // giving offcuts a material, which is a bigger input surface than the
+    // feature is worth today — so the UI says the list is per material instead
+    // of quietly packing a 6 mm back onto an 18 mm offcut.
+    () => groupForNesting(pieces).map((group) => ({ group, result: nest(group.pieces, { sheet, kerf, trim, offcuts }) })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [key],
   )
@@ -86,6 +97,66 @@ export default function SheetPlan({ pieces, unit, mmDecimals }: Props) {
         />
       </div>
 
+      <div className="no-print mb-4 rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <h3 className="text-sm font-semibold text-slate-900">Offcuts you already have</h3>
+          <p className="text-[11px] text-slate-500">
+            Used up before any new sheet. No trim is taken off these — their edges came off your own saw.
+          </p>
+        </div>
+
+        {offcuts.length > 0 && (
+          <ul className="mt-2 space-y-2">
+            {offcuts.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-end gap-2">
+                <div className="w-24">
+                  <LengthField label="Length" mm={o.w} unit={unit} mmDecimals={mmDecimals} onChange={(mm) => patchOffcut(o.id, { w: mm })} />
+                </div>
+                <span className="pb-2 text-slate-400">×</span>
+                <div className="w-24">
+                  <LengthField label="Width" mm={o.h} unit={unit} mmDecimals={mmDecimals} onChange={(mm) => patchOffcut(o.id, { h: mm })} />
+                </div>
+                <div className="w-16">
+                  <label htmlFor={`offcut-qty-${o.id}`} className="block text-xs font-medium text-slate-600 mb-1">How many</label>
+                  <input
+                    id={`offcut-qty-${o.id}`}
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={o.qty}
+                    onChange={(e) => patchOffcut(o.id, { qty: Math.max(1, Math.floor(Number(e.target.value) || 1)) })}
+                    className="tnum w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-amber-500"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeOffcut(o.id)}
+                  aria-label={`Remove the ${formatShort(o.w, unit, mmDecimals)} by ${formatShort(o.h, unit, mmDecimals)} offcut`}
+                  className="mb-0.5 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-600 hover:border-red-300 hover:text-red-700"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <button
+          type="button"
+          onClick={addOffcut}
+          className="mt-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-amber-50"
+        >
+          + Add an offcut
+        </button>
+
+        {offcuts.length > 0 && plans.length > 1 && (
+          <p className="mt-2 text-[11px] text-amber-800">
+            This list mixes materials, and an offcut has no material recorded against it — so the same
+            offcuts are offered to every plan below. Only use this list when they are all the same stock.
+          </p>
+        )}
+      </div>
+
       <div className="space-y-6">
         {plans.map(({ group, result }) => (
           <Plan
@@ -113,8 +184,8 @@ function Plan({ group, result, showMaterial, unit, mmDecimals }: {
   unit: Unit
   mmDecimals: 0 | 1
 }) {
-  const { sheets, sheet, wastePct, pieceArea, boughtArea } = result
-  const offcuts = sheets.filter((s) => s.offcut)
+  const { sheets, sheet, wastePct, pieceArea, boughtArea, sheetsBought, offcutsUsed } = result
+  const leftovers = sheets.filter((s) => s.offcut)
 
   return (
     <div className="break-inside-avoid">
@@ -126,27 +197,44 @@ function Plan({ group, result, showMaterial, unit, mmDecimals }: {
 
       {sheets.length > 0 && (
         <p className="text-sm text-slate-800">
-          <span className="tnum font-semibold">{sheets.length}</span>{' '}
-          {sheets.length === 1 ? 'sheet' : 'sheets'} of {sheet.label} —{' '}
-          <span className="tnum font-semibold">{wastePct.toFixed(0)}%</span> of what you buy ends up as
-          offcut and sawdust{' '}
-          <span className="text-slate-500">
-            ({areaM2(pieceArea).toFixed(2)} m² of pieces from {areaM2(boughtArea).toFixed(2)} m² of sheet)
-          </span>
-          .
+          {/* The headline is what you BUY. A plan cut entirely from the rack has
+              no waste percentage to quote — there is no denominator — and
+              printing a triumphant 0% would be arithmetic, not an answer. */}
+          {sheetsBought === 0 ? (
+            <>
+              <span className="font-semibold">No new sheets needed</span> — it all comes out of the{' '}
+              <span className="tnum">{offcutsUsed}</span> {offcutsUsed === 1 ? 'offcut' : 'offcuts'} you
+              already have.
+            </>
+          ) : (
+            <>
+              <span className="tnum font-semibold">{sheetsBought}</span>{' '}
+              {sheetsBought === 1 ? 'sheet' : 'sheets'} of {sheet.label}
+              {offcutsUsed > 0 && (
+                <> plus <span className="tnum font-semibold">{offcutsUsed}</span> of your own{' '}
+                  {offcutsUsed === 1 ? 'offcut' : 'offcuts'}</>
+              )}{' '}
+              — <span className="tnum font-semibold">{wastePct.toFixed(0)}%</span> of what you buy ends up
+              as offcut and sawdust{' '}
+              <span className="text-slate-500">
+                ({areaM2(pieceArea).toFixed(2)} m² of pieces, {areaM2(boughtArea).toFixed(2)} m² of new sheet)
+              </span>
+              .
+            </>
+          )}
         </p>
       )}
 
-      {offcuts.length > 0 && (
+      {leftovers.length > 0 && (
         <p className="mt-1 text-xs text-slate-600">
           Worth keeping:{' '}
-          {offcuts.map((s, i) => (
+          {leftovers.map((s, i) => (
             <span key={s.index}>
               {i > 0 && '; '}
               <span className="tnum">
                 {formatShort(s.offcut!.w, unit, mmDecimals)} × {formatShort(s.offcut!.h, unit, mmDecimals)} {unit}
               </span>{' '}
-              off sheet {s.index}
+              {s.stock.isOffcut ? 'off your own offcut' : `off sheet ${s.sheetNo}`}
             </span>
           ))}
           . One clean strip, not a pile of slivers — that is what the layout is packed down for.
@@ -165,9 +253,14 @@ function Plan({ group, result, showMaterial, unit, mmDecimals }: {
             key={layout.index}
             layout={layout}
             result={result}
-            total={sheets.length}
+            total={sheetsBought}
             unit={unit}
             mmDecimals={mmDecimals}
+            // Every drawing in a plan shares one scale, so an offcut is visibly
+            // smaller than a full sheet. Letting each fill its own width would
+            // draw a 1200 × 600 offcut the same size as a 2440 × 1220 sheet —
+            // the exact "nudged for looks" failure the net diagram forbids.
+            scaleW={Math.max(...sheets.map((s) => (s.stock.isOffcut ? s.stock.w : Math.max(result.sheet.w, result.sheet.h))))}
           />
         ))}
       </div>
@@ -175,56 +268,73 @@ function Plan({ group, result, showMaterial, unit, mmDecimals }: {
   )
 }
 
-function SheetDrawing({ layout, result, total, unit, mmDecimals }: {
+function SheetDrawing({ layout, result, total, unit, mmDecimals, scaleW }: {
   layout: SheetLayout
   result: NestResult
   total: number
   unit: Unit
   mmDecimals: 0 | 1
+  /** Millimetre width every drawing in this plan is scaled against. */
+  scaleW: number
 }) {
-  const long = Math.max(result.sheet.w, result.sheet.h)
-  const short = Math.min(result.sheet.w, result.sheet.h)
-  const { trim } = result
-  const pad = long * 0.05
-  const fs = long / 55
-  const stroke = long / 900
+  // An offcut is drawn at its own size, and — the point of the whole feature —
+  // with NO trim band, because its edges came off your saw and are already
+  // square. Drawing a trim inset on it would be a picture of wood being thrown
+  // away twice.
+  const own = layout.stock
+  const trim = own.isOffcut ? 0 : result.trim
+  const nominalW = own.isOffcut ? own.w : Math.max(result.sheet.w, result.sheet.h)
+  const nominalH = own.isOffcut ? own.h : Math.min(result.sheet.w, result.sheet.h)
+  const pad = scaleW * 0.05
+  const fs = scaleW / 55
+  const stroke = scaleW / 900
 
   return (
     <figure data-sheet={layout.index} className="break-inside-avoid">
       <figcaption className="mb-1 flex flex-wrap items-baseline gap-x-2">
         <h4 className="text-sm font-semibold text-slate-900">
-          Sheet {layout.index}{total > 1 ? ` of ${total}` : ''}
+          {own.isOffcut
+            ? `Your offcut — ${formatShort(own.w, unit, mmDecimals)} × ${formatShort(own.h, unit, mmDecimals)} ${unit}`
+            : `Sheet ${layout.sheetNo}${total > 1 ? ` of ${total}` : ''}`}
         </h4>
         <span className="text-[11px] text-slate-500">
           {layout.placements.length} {layout.placements.length === 1 ? 'piece' : 'pieces'} · grain runs left to right
+          {own.isOffcut && ' · no trim, the edges are already sawn'}
         </span>
       </figcaption>
 
+      {/* The viewBox WIDTH is the plan's common extent, so every drawing shares
+          one scale and a 1450 mm offcut is visibly narrower than a 2440 mm
+          sheet. The HEIGHT is cropped to this piece of stock. Both matter:
+          `w-full` fixes the rendered width, so keeping the width shared keeps
+          millimetres-per-pixel identical in BOTH axes, while cropping the
+          height stops a 420 mm offcut reserving 1220 mm of blank canvas. */}
       <svg
-        viewBox={`${-pad} ${-pad} ${long + pad * 2} ${short + pad * 2.4}`}
+        viewBox={`${-pad} ${-pad} ${scaleW + pad * 2} ${nominalH + pad * 2.4}`}
         className="w-full h-auto"
         role="img"
-        aria-label={`Sheet ${layout.index}: ${layout.placements
+        aria-label={`${own.isOffcut ? `Your ${Math.round(own.w)} by ${Math.round(own.h)} millimetre offcut` : `Sheet ${layout.sheetNo}`}: ${layout.placements
           .map((p) => `${p.label} ${Math.round(p.w)} by ${Math.round(p.h)} millimetres at ${Math.round(p.x)}, ${Math.round(p.y)}`)
           .join('. ')}`}
       >
         <defs>
           {/* A hatch, not a tint. Workshop printers are black and white, and a
               grey fill is exactly what they turn into nothing. */}
-          <pattern id={`waste-${layout.index}`} width={long / 60} height={long / 60} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1={0} y1={0} x2={0} y2={long / 60} stroke="#cbd5e1" strokeWidth={stroke} />
+          <pattern id={`waste-${layout.index}`} width={scaleW / 60} height={scaleW / 60} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1={0} y1={0} x2={0} y2={scaleW / 60} stroke="#cbd5e1" strokeWidth={stroke} />
           </pattern>
         </defs>
 
-        {/* The nominal sheet, and inside it the trimmed area actually used. The
-            band between them is the factory edge nobody should be cutting to. */}
-        <rect x={0} y={0} width={long} height={short} fill="#f8fafc" stroke="#94a3b8" strokeWidth={stroke} />
+        {/* The nominal stock, and inside it the area actually used. On a bought
+            sheet the band between them is the factory edge nobody should be
+            cutting to; on an offcut there is no band, because there is no trim. */}
+        <rect x={0} y={0} width={nominalW} height={nominalH} fill="#f8fafc" stroke="#94a3b8" strokeWidth={stroke} />
         <rect
           data-ink
           x={trim}
           y={trim}
-          width={result.usable.w}
-          height={result.usable.h}
+          width={own.w}
+          height={own.h}
           className="panel-fill"
           fill={`url(#waste-${layout.index})`}
           stroke="#475569"
@@ -290,7 +400,7 @@ function SheetDrawing({ layout, result, total, unit, mmDecimals }: {
             this is the piece that goes on the rack, and it wants a size on it. */}
         {layout.offcut && (
           <text
-            x={trim + result.usable.w / 2}
+            x={trim + own.w / 2}
             y={trim + layout.usedHeight + layout.offcut.h / 2}
             textAnchor="middle"
             dominantBaseline="middle"
@@ -301,8 +411,9 @@ function SheetDrawing({ layout, result, total, unit, mmDecimals }: {
           </text>
         )}
 
-        <text x={long / 2} y={short + fs * 1.6} textAnchor="middle" fontSize={fs} fill="#475569">
-          {formatShort(long, unit, mmDecimals)} {unit} — {formatShort(trim, unit, mmDecimals)} trim
+        <text x={nominalW / 2} y={nominalH + fs * 1.6} textAnchor="middle" fontSize={fs} fill="#475569">
+          {formatShort(nominalW, unit, mmDecimals)} {unit}
+          {own.isOffcut ? ' — your own stock, no trim' : ` — ${formatShort(trim, unit, mmDecimals)} trim`}
         </text>
       </svg>
     </figure>

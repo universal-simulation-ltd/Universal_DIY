@@ -105,6 +105,20 @@ input has been run, not tested.
   the fixed starting candidates. **Found by looking at a rendered plan, not by a
   failing test**, which is the argument for rendering the thing before believing
   the suite.
+- **Two arithmetic traps live in the offcut path, and both were caught by a test
+  written before the UI.** First, the waste percentage must be
+  `(boughtArea − area cut FROM BOUGHT SHEETS) / boughtArea`; using the total
+  placed area credits a bought sheet with pieces that came off the rack and goes
+  **negative** as soon as offcuts supply more area than sheets do. Second, an
+  offcut too small to hold any piece must be filtered out before packing —
+  otherwise it gets opened, fails to take the piece, and is silently marked
+  spent, consuming stock on paper that is still on the rack in reality.
+- **First-fit deliberately does not burn an offcut on a sheet it already bought.**
+  Open stock is tried before new stock, so once a sheet has to be bought for a
+  long piece, short pieces fill it rather than the rack. That looks like the
+  optimiser ignoring your offcuts and is the correct answer — spending stock to
+  leave a paid-for sheet emptier is a worse plan that scores better on a naive
+  "offcuts used" count.
 - **Perturb the best order; do not shuffle.** Measured: full random restarts
   improved the layout on one of five realistic cut lists and never saved a sheet.
   First-fit-decreasing is already at the area lower bound on realistic input, so
@@ -165,11 +179,11 @@ with the determinism stated next to it, rather than a percentage.
 1. **Phase 3: per-panel thickness.** The formula already supports it — the
    deductions are per-neighbour, so `t` becomes `t(neighbour)`. The cost is input
    surface, not arithmetic.
-2. **Offcuts as stock, and linear (1D) cutting.** The two rows the comparison
-   page shows us losing to OpenCutList, and the two most defensible next
-   features. Offcuts is the cheaper of the pair: `nest()` already opens sheets one
-   at a time, so a user-supplied offcut is a sheet with different dimensions
-   consumed before the full ones.
+2. **Linear (1D) cutting.** The row we still lose to OpenCutList and OptiCutter:
+   this app packs sheets, and does nothing with lengths of timber.
+   (**Offcuts as stock shipped 2026-08-10** — `nest()` takes a `StockUnit` list,
+   offcuts first, and `score()` counts SHEETS BOUGHT rather than sheets used, so
+   a plan that eats four offcuts and one sheet beats one that buys two.)
 3. **Three.js: demoted, probably never.** Decorative at best, and it implies an
    editability the app refuses.
 

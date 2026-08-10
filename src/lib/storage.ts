@@ -12,7 +12,7 @@
 // ---------------------------------------------------------------------------
 
 import { SHEETS } from './materials'
-import { DEFAULT_KERF, DEFAULT_TRIM } from './nest'
+import { DEFAULT_KERF, DEFAULT_TRIM, type Offcut } from './nest'
 import { PANEL_IDS, isValidOrder, type Design, type PanelId } from './panels'
 import { END_IDS, type Joint, type Part, type PartsProject } from './parts'
 import type { Unit } from './units'
@@ -278,12 +278,15 @@ export interface SawSettings {
   kerf: number
   /** mm. */
   trim: number
+  /** Stock already on your rack. Yours, not the project's — same argument. */
+  offcuts: Offcut[]
 }
 
 export const DEFAULT_SAW: SawSettings = {
   sheetId: SHEETS[0].id,
   kerf: DEFAULT_KERF,
   trim: DEFAULT_TRIM,
+  offcuts: [],
 }
 
 /** Clamp rather than reject: a silly kerf should not lose the other two fields. */
@@ -291,19 +294,32 @@ export function sanitiseSaw(input: unknown): SawSettings {
   const raw = (input ?? {}) as Partial<SawSettings>
   const number = (v: unknown, fallback: number, max: number) =>
     typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.min(v, max) : fallback
+  // An offcut with a bad size is DROPPED, not clamped. Clamping would invent a
+  // piece of wood that is not on the rack, and the plan would send somebody to
+  // cut a panel out of it.
+  const offcuts: Offcut[] = []
+  for (const item of Array.isArray(raw.offcuts) ? raw.offcuts : []) {
+    const o = item as Partial<Offcut>
+    if (typeof o.id !== 'string' || !o.id) continue
+    if ([o.w, o.h].some((v) => typeof v !== 'number' || !Number.isFinite(v) || v <= 0)) continue
+    if (typeof o.qty !== 'number' || !Number.isInteger(o.qty) || o.qty < 1) continue
+    offcuts.push({ id: o.id, w: o.w as number, h: o.h as number, qty: o.qty })
+  }
+
   return {
     sheetId: SHEETS.some((s) => s.id === raw.sheetId) ? (raw.sheetId as string) : DEFAULT_SAW.sheetId,
     kerf: number(raw.kerf, DEFAULT_SAW.kerf, 50),
     trim: number(raw.trim, DEFAULT_SAW.trim, 200),
+    offcuts,
   }
 }
 
 export function loadSaw(): SawSettings {
   try {
     const raw = localStorage.getItem(SAW_KEY)
-    return raw ? sanitiseSaw(JSON.parse(raw)) : { ...DEFAULT_SAW }
+    return raw ? sanitiseSaw(JSON.parse(raw)) : { ...DEFAULT_SAW, offcuts: [] }
   } catch {
-    return { ...DEFAULT_SAW }
+    return { ...DEFAULT_SAW, offcuts: [] }
   }
 }
 

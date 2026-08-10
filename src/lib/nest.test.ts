@@ -412,6 +412,133 @@ describe('the numbers on the summary line', () => {
   })
 })
 
+describe('offcuts you already own', () => {
+  const three = [piece({ label: 'A', length: 500, width: 300, qty: 3 })]
+
+  it('are used up before a single sheet is bought', () => {
+    const bare = nest(three, OPTS)
+    expect(bare.sheetsBought).toBe(1)
+    expect(bare.offcutsUsed).toBe(0)
+
+    const withStock = nest(three, { ...OPTS, offcuts: [{ id: 'o1', w: 600, h: 400, qty: 3 }] })
+    expect(withStock.sheetsBought).toBe(0)
+    expect(withStock.offcutsUsed).toBe(3)
+    expect(withStock.sheets.every((s) => s.stock.isOffcut)).toBe(true)
+  })
+
+  it('quotes no waste percentage when nothing is bought', () => {
+    // There is no denominator. A triumphant 0% would be arithmetic, not an
+    // answer, so the number is zero and the UI says it in words instead.
+    const r = nest(three, { ...OPTS, offcuts: [{ id: 'o1', w: 600, h: 400, qty: 3 }] })
+    expect(r.boughtArea).toBe(0)
+    expect(r.wastePct).toBe(0)
+  })
+
+  it('never lets pieces cut from the rack flatter the waste figure', () => {
+    // The bug this test exists for: counting ALL placed pieces against the
+    // sheets you bought credits a bought sheet with area that came off an
+    // offcut, and drives the percentage negative once the rack supplies more
+    // than the sheet does.
+    const many = [piece({ label: 'A', length: 1200, width: 600, qty: 4 })]
+    const r = nest(many, { ...OPTS, offcuts: [{ id: 'o1', w: 1250, h: 650, qty: 3 }] })
+    expect(r.offcutsUsed).toBe(3)
+    expect(r.sheetsBought).toBe(1)
+    expect(r.wastePct).toBeGreaterThan(0)
+    expect(r.wastePct).toBeLessThanOrEqual(100)
+  })
+
+  it('takes no trim off an offcut — its edges came off your own saw', () => {
+    // 590 × 390 fits a 600 × 400 offcut exactly once no trim is deducted, and
+    // does not fit if 10 mm comes off the way it does on a factory sheet.
+    const snug = [piece({ label: 'A', length: 595, width: 395 })]
+    const r = nest(snug, { ...OPTS, offcuts: [{ id: 'o1', w: 600, h: 400, qty: 1 }] })
+    expect(r.sheetsBought).toBe(0)
+    expect(r.sheets[0].stock).toMatchObject({ w: 600, h: 400, isOffcut: true })
+  })
+
+  it('spends the smallest usable offcut first, keeping the big one whole', () => {
+    const r = nest([piece({ label: 'A', length: 400, width: 250 })], {
+      ...OPTS,
+      offcuts: [{ id: 'big', w: 2000, h: 900, qty: 1 }, { id: 'small', w: 450, h: 300, qty: 1 }],
+    })
+    expect(r.sheets).toHaveLength(1)
+    expect(r.sheets[0].stock.w).toBe(450)
+  })
+
+  it('buys a sheet for a piece no offcut can hold, and does not burn an offcut it no longer needs', () => {
+    // A is 2000 mm and fits no offcut, so a sheet has to be bought. B would fit
+    // the offcut — and must NOT go there, because the sheet is already paid for
+    // and has room. Spending stock off the rack to leave a bought sheet emptier
+    // is a worse plan that looks like a better one.
+    const r = nest([piece({ label: 'A', length: 2000, width: 400 }), piece({ label: 'B', length: 300, width: 200 })], {
+      ...OPTS,
+      offcuts: [{ id: 'o1', w: 400, h: 300, qty: 1 }],
+    })
+    expect(r.sheetsBought).toBe(1)
+    expect(r.offcutsUsed).toBe(0)
+    expect(r.sheets).toHaveLength(1)
+    expect(r.sheets[0].placements.map((p) => p.label).sort()).toEqual(['A', 'B'])
+    expect(r.warnings.join(' ')).toMatch(/1 of your 1 offcuts is not used/)
+  })
+
+  it('says which offcuts it could not use rather than leaving you to notice', () => {
+    const r = nest([piece({ label: 'A', length: 400, width: 250 })], {
+      ...OPTS,
+      offcuts: [{ id: 'o1', w: 450, h: 300, qty: 3 }],
+    })
+    expect(r.offcutsUsed).toBe(1)
+    expect(r.warnings.join(' ')).toMatch(/2 of your 3 offcuts are not used/)
+  })
+
+  it('ignores an offcut too small for anything, instead of opening and wasting it', () => {
+    // An offcut that cannot hold a single piece must not be picked up, fail to
+    // take the piece, and be silently marked spent — that would consume stock
+    // on paper that is still on the rack in reality.
+    const r = nest([piece({ label: 'A', length: 400, width: 250 })], {
+      ...OPTS,
+      offcuts: [{ id: 'tiny', w: 60, h: 40, qty: 1 }, { id: 'ok', w: 450, h: 300, qty: 1 }],
+    })
+    expect(r.sheetsBought).toBe(0)
+    expect(r.sheets).toHaveLength(1)
+    expect(r.sheets[0].stock.w).toBe(450)
+    expect(r.warnings.join(' ')).not.toMatch(/offcuts are not used/)
+  })
+
+  it('still emits layouts that can be cut, on the rack as well as on a sheet', () => {
+    const r = nest([piece({ label: 'A', length: 380, width: 180, qty: 7, grained: true })], {
+      ...OPTS,
+      offcuts: [{ id: 'o1', w: 800, h: 600, qty: 2 }],
+    })
+    expect(r.sheets.length).toBeGreaterThan(0)
+    for (const layout of r.sheets) {
+      checkSheet(layout, { w: layout.stock.w, h: layout.stock.h }, r.kerf)
+    }
+  })
+
+  it('numbers the sheets you buy, not every layout on the page', () => {
+    // "Sheet 3 of 4" on a plan that buys two sheets reads as two missing
+    // sheets. Offcuts are named by size and carry no sheet number at all.
+    const r = nest([piece({ label: 'A', length: 1400, width: 400, qty: 2, grained: true }),
+      piece({ label: 'B', length: 2000, width: 900, qty: 2, grained: true })], {
+      ...OPTS,
+      offcuts: [{ id: 'o1', w: 1450, h: 420, qty: 2 }],
+    })
+    expect(r.offcutsUsed).toBe(2)
+    expect(r.sheets.filter((s) => s.stock.isOffcut).every((s) => s.sheetNo === null)).toBe(true)
+    expect(r.sheets.filter((s) => !s.stock.isOffcut).map((s) => s.sheetNo))
+      .toEqual(Array.from({ length: r.sheetsBought }, (_, i) => i + 1))
+  })
+
+  it('drops a nonsense offcut rather than packing onto imaginary wood', () => {
+    const r = nest([piece({ label: 'A', length: 400, width: 250 })], {
+      ...OPTS,
+      offcuts: [{ id: 'bad', w: 0, h: 500, qty: 1 }, { id: 'nope', w: 500, h: 400, qty: 0 }],
+    })
+    expect(r.offcutsUsed).toBe(0)
+    expect(r.sheetsBought).toBe(1)
+  })
+})
+
 describe('a mixed list is one plan per material and thickness', () => {
   it('never packs 18 mm carcass parts onto the same sheet as a 6 mm back', () => {
     const groups = groupForNesting([

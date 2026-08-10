@@ -60,12 +60,31 @@ export interface NestPiece {
   thickness: number
 }
 
+/**
+ * A piece of stock you already own.
+ *
+ * ⚠️ NO TRIM IS TAKEN OFF AN OFFCUT, and that is deliberate rather than an
+ * omission. The trim allowance exists because a factory edge is rarely square;
+ * an offcut's edges came off your own saw, so they already are. Deducting 10 mm
+ * again would quietly shrink every offcut in the rack and send somebody to buy
+ * a sheet they did not need.
+ */
+export interface Offcut {
+  id: string
+  /** mm, as measured. Which way round makes no difference — it is not grained stock. */
+  w: number
+  h: number
+  qty: number
+}
+
 export interface NestOptions {
   sheet: Sheet
   /** Saw kerf, mm. The width of wood each cut destroys. */
   kerf: number
-  /** Trimmed off one long and one short edge, mm. */
+  /** Trimmed off one long and one short edge, mm. Full sheets only. */
   trim: number
+  /** Stock you already own. Used up before any sheet is bought. */
+  offcuts?: readonly Offcut[]
   /**
    * Randomised restarts over the piece ordering. A few hundred is plenty at
    * this scale — the search is milliseconds — and more buys almost nothing.
@@ -88,8 +107,18 @@ export interface Placement {
 }
 
 export interface SheetLayout {
-  /** 1-based, as printed. */
+  /** 1-based across every layout in the plan. A stable React key, not a label. */
   index: number
+  /**
+   * "Sheet 2 of 3" — 1-based among the sheets you BUY, and null for an offcut.
+   *
+   * Not the same as `index`, and the difference is the whole point: numbering
+   * every layout in one run produces "Sheet 3 of 4" on a plan that buys two
+   * sheets, which reads as two missing sheets rather than as two offcuts.
+   */
+  sheetNo: number | null
+  /** What this is cut from: a bought sheet, or an offcut you already had. */
+  stock: { w: number; h: number; label: string; isOffcut: boolean }
   placements: Placement[]
   /** Sum of placed piece areas, mm². */
   usedArea: number
@@ -108,7 +137,11 @@ export interface NestResult {
   trim: number
   /** Sum of every placed piece's area, mm². */
   pieceArea: number
-  /** Whole sheets consumed × the NOMINAL sheet area — what you pay for. */
+  /** Full sheets you have to buy. Offcuts you already own are not counted. */
+  sheetsBought: number
+  /** How many of your declared offcuts the plan actually consumed. */
+  offcutsUsed: number
+  /** `sheetsBought` × the NOMINAL sheet area — what you pay for. */
   boughtArea: number
   /** Of the sheets bought, the share that does not end up as a piece. */
   wastePct: number
@@ -230,7 +263,19 @@ interface Shelf {
   x: number
 }
 
+/**
+ * One piece of stock the packer may open — a full sheet, or an offcut you
+ * already own. `w`/`h` are USABLE dimensions, trim already deducted.
+ */
+interface StockUnit {
+  w: number
+  h: number
+  label: string
+  isOffcut: boolean
+}
+
 interface WorkSheet {
+  stock: StockUnit
   shelves: Shelf[]
   /** Top edge of the highest shelf. */
   used: number
@@ -238,8 +283,13 @@ interface WorkSheet {
   usedArea: number
 }
 
-function packOrder(items: readonly Item[], usableW: number, usableH: number, kerf: number): WorkSheet[] {
+/**
+ * `offcuts` are tried, in the order given, before a new full sheet is opened —
+ * which is the whole point of declaring them. `full` is unlimited.
+ */
+function packOrder(items: readonly Item[], offcuts: readonly StockUnit[], full: StockUnit, kerf: number): WorkSheet[] {
   const sheets: WorkSheet[] = []
+  const spent = new Set<number>()
 
   const openShelf = (sheet: WorkSheet, item: Item): boolean => {
     const y = sheet.used === 0 && sheet.shelves.length === 0 ? 0 : sheet.used + kerf
@@ -247,7 +297,7 @@ function packOrder(items: readonly Item[], usableW: number, usableH: number, ker
     // to stand up: a strip costs its own height in sheet, so laid flat is the
     // right default and `flip` is how the search escapes it.
     const fits = orientationsOf(item)
-      .filter((o) => o.w <= usableW && y + o.h <= usableH)
+      .filter((o) => o.w <= sheet.stock.w && y + o.h <= sheet.stock.h)
       .sort((a, b) => a.h - b.h || b.w - a.w)
     const o = item.flip ? fits[fits.length - 1] : fits[0]
     if (!o) return false
@@ -268,7 +318,7 @@ function packOrder(items: readonly Item[], usableW: number, usableH: number, ker
       let best: { shelf: Shelf; o: Orientation; slack: number } | null = null
       for (const shelf of sheet.shelves) {
         for (const o of orientationsOf(item)) {
-          if (o.h > shelf.h || shelf.x + o.w > usableW) continue
+          if (o.h > shelf.h || shelf.x + o.w > sheet.stock.w) continue
           const slack = shelf.h - o.h
           if (!best || slack < best.slack) best = { shelf, o, slack }
         }
@@ -290,13 +340,30 @@ function packOrder(items: readonly Item[], usableW: number, usableH: number, ker
 
     if (placed) continue
 
-    const sheet: WorkSheet = { shelves: [], used: 0, placements: [], usedArea: 0 }
-    // Pre-filtered by `fitsSheet`, so this cannot fail — but if it ever did,
-    // silently dropping the piece is the one outcome that must not happen.
-    if (!openShelf(sheet, item)) {
-      throw new Error(`${item.label} does not fit an empty sheet — it should have been reported as oversize.`)
+    // Nothing open will take it, so open new stock. An offcut you already own
+    // is free, so every one that fits is tried before a sheet you have to buy —
+    // in ascending area, which keeps the big offcuts intact for the big pieces
+    // instead of spending a 1200 × 900 on a drawer bottom.
+    let opened: WorkSheet | null = null
+    for (let i = 0; i < offcuts.length; i += 1) {
+      if (spent.has(i)) continue
+      const candidate: WorkSheet = { stock: offcuts[i], shelves: [], used: 0, placements: [], usedArea: 0 }
+      if (openShelf(candidate, item)) {
+        spent.add(i)
+        opened = candidate
+        break
+      }
     }
-    sheets.push(sheet)
+
+    if (!opened) {
+      opened = { stock: full, shelves: [], used: 0, placements: [], usedArea: 0 }
+      // Pre-filtered by `fitsSheet`, so this cannot fail — but if it ever did,
+      // silently dropping the piece is the one outcome that must not happen.
+      if (!openShelf(opened, item)) {
+        throw new Error(`${item.label} does not fit an empty sheet — it should have been reported as oversize.`)
+      }
+    }
+    sheets.push(opened)
   }
 
   return sheets
@@ -310,7 +377,11 @@ function packOrder(items: readonly Item[], usableW: number, usableH: number, ker
  * rather than the same area spread as four useless slivers.
  */
 function score(sheets: readonly WorkSheet[]): number {
-  return sheets.length * 1e9 + sheets.reduce((sum, s) => sum + s.used, 0)
+  // Counted in SHEETS BOUGHT, not sheets used. An offcut is already in the rack
+  // and paid for, so a plan that consumes four offcuts and one sheet beats one
+  // that consumes two sheets — which is the entire reason for declaring them.
+  const bought = sheets.filter((s) => !s.stock.isOffcut).length
+  return bought * 1e9 + sheets.reduce((sum, s) => sum + s.used, 0)
 }
 
 function fitsSheet(item: Item, usableW: number, usableH: number): boolean {
@@ -378,8 +449,8 @@ export function nest(pieces: readonly NestPiece[], options: NestOptions): NestRe
 
   const empty = (): NestResult => ({
     sheets: [], sheet, usable: { w: usableW, h: usableH }, kerf, trim,
-    pieceArea: 0, boughtArea: 0, wastePct: 0, oversize, grainLocked: 0,
-    warnings, caveat: NEST_CAVEAT,
+    pieceArea: 0, sheetsBought: 0, offcutsUsed: 0, boughtArea: 0, wastePct: 0,
+    oversize, grainLocked: 0, warnings, caveat: NEST_CAVEAT,
   })
 
   if (usableW <= 0 || usableH <= 0) {
@@ -406,12 +477,28 @@ export function nest(pieces: readonly NestPiece[], options: NestOptions): NestRe
   const byShortest = [...items].sort((a, b) => Math.min(b.length, b.width) - Math.min(a.length, a.width))
   const byArea = [...items].sort((a, b) => b.length * b.width - a.length * a.width)
 
+  // The stock you already own, one unit per physical offcut, smallest first.
+  // Only offcuts big enough to hold at least one piece are kept: a 60 mm strip
+  // in the list would otherwise be opened, fail, and be silently marked spent.
+  const fullStock: StockUnit = { w: usableW, h: usableH, label: sheet.label, isOffcut: false }
+  const offcutStock: StockUnit[] = []
+  for (const o of options.offcuts ?? []) {
+    if (!(o.w > 0) || !(o.h > 0)) continue
+    const w = Math.max(o.w, o.h)
+    const h = Math.min(o.w, o.h)
+    if (!items.some((i) => orientationsOf(i).some((r) => r.w <= w && r.h <= h))) continue
+    for (let n = 0; n < Math.max(0, Math.floor(o.qty)); n += 1) {
+      offcutStock.push({ w, h, label: `Offcut ${w} × ${h}`, isOffcut: true })
+    }
+  }
+  offcutStock.sort((a, b) => a.w * a.h - b.w * b.h)
+
   const rand = mulberry32(options.seed ?? DEFAULT_SEED)
-  let best = packOrder(byLongest, usableW, usableH, kerf)
+  let best = packOrder(byLongest, offcutStock, fullStock, kerf)
   let bestScore = score(best)
   let bestOrder: readonly Item[] = byLongest
   const consider = (order: readonly Item[]) => {
-    const attempt = packOrder(order, usableW, usableH, kerf)
+    const attempt = packOrder(order, offcutStock, fullStock, kerf)
     const s = score(attempt)
     if (s < bestScore) {
       best = attempt
@@ -426,19 +513,29 @@ export function nest(pieces: readonly NestPiece[], options: NestOptions): NestRe
   // Hill climb from whichever of the three won, keeping every improvement.
   for (let i = 0; i < iterations; i += 1) consider(perturb(bestOrder, rand))
 
+  let bought = 0
   const sheets: SheetLayout[] = best.map((s, i) => {
-    const leftover = usableH - s.used
+    const leftover = s.stock.h - s.used
     return {
       index: i + 1,
+      sheetNo: s.stock.isOffcut ? null : (bought += 1),
+      stock: { ...s.stock },
       placements: s.placements,
       usedArea: s.usedArea,
       usedHeight: s.used,
-      offcut: leftover >= MIN_OFFCUT ? { w: usableW, h: leftover } : null,
+      offcut: leftover >= MIN_OFFCUT ? { w: s.stock.w, h: leftover } : null,
     }
   })
 
   const pieceArea = sheets.reduce((sum, s) => sum + s.usedArea, 0)
-  const boughtArea = sheets.length * sheet.w * sheet.h
+  const sheetsBought = sheets.filter((s) => !s.stock.isOffcut).length
+  const offcutsUsed = sheets.length - sheetsBought
+  const boughtArea = sheetsBought * sheet.w * sheet.h
+  // Only the pieces that actually come off a BOUGHT sheet count against what
+  // you bought. Using the total here would credit sheets you did not buy with
+  // pieces cut from the offcut rack, and drives the waste figure NEGATIVE as
+  // soon as the offcuts supply more area than the sheets do.
+  const boughtPieceArea = sheets.reduce((sum, s) => (s.stock.isOffcut ? sum : sum + s.usedArea), 0)
   const grainLocked = items.filter((i) => i.grained && i.length !== i.width).length
 
   if (grainLocked) {
@@ -450,6 +547,13 @@ export function nest(pieces: readonly NestPiece[], options: NestOptions): NestRe
   if (kerf <= 0) {
     warnings.push('Kerf is zero, so this layout assumes a saw that removes no wood. Nothing cuts like that.')
   }
+  if (offcutStock.length && offcutsUsed < offcutStock.length) {
+    const spare = offcutStock.length - offcutsUsed
+    warnings.push(
+      `${spare} of your ${offcutStock.length} offcuts ${spare === 1 ? 'is' : 'are'} not used — nothing left ` +
+      'in the list fits, so they stay on the rack.',
+    )
+  }
 
   return {
     sheets,
@@ -458,8 +562,14 @@ export function nest(pieces: readonly NestPiece[], options: NestOptions): NestRe
     kerf,
     trim,
     pieceArea,
+    sheetsBought,
+    offcutsUsed,
     boughtArea,
-    wastePct: boughtArea > 0 ? ((boughtArea - pieceArea) / boughtArea) * 100 : 0,
+    // Measured against what you BUY. A plan cut entirely from offcuts buys
+    // nothing, so there is no denominator and no waste figure to quote — 0 here
+    // means "nothing bought", and the UI says that in words rather than
+    // printing a triumphant 0%.
+    wastePct: boughtArea > 0 ? ((boughtArea - boughtPieceArea) / boughtArea) * 100 : 0,
     oversize,
     grainLocked,
     warnings,

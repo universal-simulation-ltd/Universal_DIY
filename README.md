@@ -201,6 +201,12 @@ prove the check can fail.
 
 Three things it models, none of them optional:
 
+- **Offcuts you already own** — tell it what is on the rack and those get used up
+  before a single new sheet is bought. **No trim is taken off an offcut**: its
+  edges came off your saw, so they are already square, and deducting again would
+  quietly shrink every piece in the rack. If the whole job comes out of your
+  offcuts it says so instead of quoting a waste percentage against sheets you
+  never bought.
 - **Saw kerf** (3 mm by default) — the wood the blade turns to dust at every cut.
   Ten cuts is 30 mm, which is the difference between a plan that works and a plan
   that is one piece short.
@@ -210,8 +216,9 @@ Three things it models, none of them optional:
 - **Trim** (10 mm by default, off one long and one short edge) — factory edges
   are rarely square, and a piece sized to the nominal sheet does not fit.
 
-Kerf and trim are settings for **your saw**, so they are remembered once and
-shared by both pages rather than asked for per project. A list that mixes
+Kerf, trim and your offcut rack are facts about **your workshop**, not about this
+project, so they are remembered once and shared by both pages rather than asked
+for per project. A list that mixes
 materials or thicknesses gets one plan each — 18 mm carcass parts and a 6 mm back
 do not come off the same sheet.
 
