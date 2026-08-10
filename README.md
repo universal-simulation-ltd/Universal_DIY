@@ -209,6 +209,31 @@ It is drawn from the **same solids** as the cross-sections and the validity
 tests, so it is a view of the checked model rather than a second model of the box
 that would be free to drift from the first.
 
+## Will it sag?
+
+Cut sizes say how to build the box. They say nothing about whether the top will
+bow under a row of books — and that is the arithmetic nobody does in their head,
+because deflection goes with the **cube** of both the thickness and the span.
+Going 18 mm → 25 mm makes a shelf 2.7× stiffer; going 600 mm → 900 mm makes it
+3.4× floppier.
+
+Pick what will be on it and it works out the bend in the panels that span
+between the sides, tells you what it is comparing against (span ÷ 200), and — if
+it fails — offers the thinnest stock thickness that would pass, a stiffer
+material at the same thickness, or says plainly that no thickness will save it.
+
+**The long-term number is the one it leads with.** Wood and board *creep*: under
+a load that never comes off they keep bending for years. Plywood ends up about
+1.8× its day-one bend, MDF 2.5×, chipboard 3.25×. That is why the cheap
+bookshelf looks fine when you build it and bowed two winters later.
+
+**What it ignores, and says so in the page:** a back panel, a front lip or
+batten, a centre support, and screwed rather than resting ends. All four stiffen
+a real shelf, usually by a lot. The stiffness figures are typical published
+values for the material class and real boards vary widely. It is a sanity check
+for domestic shelving — **never** for anything that would hurt somebody if it
+let go.
+
 ## The cutting plan
 
 Cut sizes tell you how big each piece is. The cutting plan tells you **where it

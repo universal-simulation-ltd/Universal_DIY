@@ -7,6 +7,7 @@ import BoxInputs from './BoxInputs'
 import CutList from './CutList'
 import Diagram from './Diagram'
 import Exports from './Exports'
+import SagCheck from './SagCheck'
 import WrapOrder from './WrapOrder'
 
 export default function DiyApp() {
@@ -102,6 +103,9 @@ export default function DiyApp() {
                 unit={unit}
                 mmDecimals={mmDecimals}
               />
+              {/* After the cut list, before the exports: you want the sizes
+                  first, then "hang on, will it hold?", then the paperwork. */}
+              <SagCheck design={design} cutlist={cutlist} />
               <Exports design={design} cutlist={cutlist} />
             </>
           )}
