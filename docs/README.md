@@ -162,16 +162,21 @@ with the determinism stated next to it, rather than a percentage.
 
 ## Still to do
 
-1. **`UNISIM_Compare` entry — now due.** It was held on exactly one condition:
-   until a sheet optimiser shipped, `features.optimiser` was a ✗ against
-   cutlistoptimizer's ✓ on the row most visitors care about. That condition has
-   gone. The entry still needs the competitor rows **verified rather than
-   recalled** before any ✗ is claimed against a named product.
-2. **Phase 3: per-panel thickness.** The formula already supports it — the
+1. **Phase 3: per-panel thickness.** The formula already supports it — the
    deductions are per-neighbour, so `t` becomes `t(neighbour)`. The cost is input
    surface, not arithmetic.
+2. **Offcuts as stock, and linear (1D) cutting.** The two rows the comparison
+   page shows us losing to OpenCutList, and the two most defensible next
+   features. Offcuts is the cheaper of the pair: `nest()` already opens sheets one
+   at a time, so a user-supplied offcut is a sheet with different dimensions
+   consumed before the full ones.
 3. **Three.js: demoted, probably never.** Decorative at best, and it implies an
    editability the app refuses.
+
+The `UNISIM_Compare` entry is **done** (2026-08-10, `/comparisons/diy` — vs
+CutList Optimizer, OptiCutter, MaxCut and OpenCutList). ⚠️ Its competitor claims
+are quoted from live pages read on that date; if you change a row there, re-read
+the vendor page rather than trusting the quote's age.
 
 Launch is done: the public repo exists, the Pages project is live behind
 `opensource.unisim.co.uk/diy` (via `'/diy': 'https://unisim-diy.pages.dev'` in
