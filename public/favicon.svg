@@ -1,7 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#b45309"/>
-  <g fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round">
-    <rect x="6" y="6" width="20" height="20" rx="1.5"/>
-    <path d="M6 12h20M12 12v14"/>
+<!-- GENERATED FILE — do not edit by hand.
+     Source: backoffice/universal-platform/scripts/app-marks/marks.mjs
+     Regenerate: node scripts/app-marks/build.mjs (from backoffice/universal-platform)
+     Mark: Universal DIY — A box seen as a net, one panel lapping the next. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Universal DIY">
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#0f172a"/>
+  <g fill="none" stroke-width="4" stroke-linejoin="round" stroke="#fe8c01">
+    <rect x="10" y="18" width="44" height="30" rx="3"/>
+    <path d="M10 28h44"/>
   </g>
+  <path d="M24 18v30" fill="none" stroke-width="4" stroke-linejoin="round" stroke="#fe8c01"/>
+  <rect x="10" y="51" width="44" height="4" rx="2" fill="#ff9a1f"/>
 </svg>
