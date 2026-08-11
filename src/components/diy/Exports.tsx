@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
+import { useFileDrop } from '@unisim/sdk'
 import { downloadCsv, safeFilename, toCsv } from '../../lib/csv'
 import { estimateSheets } from '../../lib/materials'
 import { buildShareUrl } from '../../lib/share'
@@ -11,9 +12,25 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
   const unit = useDiyStore((s) => s.unit)
   const notes = useDiyStore((s) => s.notes)
   const replace = useDiyStore((s) => s.replace)
-  const fileInput = useRef<HTMLInputElement>(null)
   const [shareUrl, setShareUrl] = useState('')
   const [loadError, setLoadError] = useState('')
+
+  // "Open project" is one button in a row of them, so the SDK hook is here for
+  // its input mechanics rather than a drop target.
+  const projectPicker = useFileDrop({
+    onFiles: (files) => { void openProject(files[0]) },
+    accept: '.json,application/json',
+    multiple: false,
+    clickToBrowse: false,
+  })
+
+  async function openProject(file: File | undefined) {
+    if (!file) return
+    const loaded = fromProjectFile(await file.text())
+    if (!loaded) return setLoadError('That is not a Universal DIY project file, or it has been damaged.')
+    setLoadError('')
+    replace(loaded.design, loaded.unit, loaded.notes)
+  }
 
   const stem = safeFilename(design.name)
   // The same sheet the cutting plan is laid out on — one picker, up there with
@@ -57,26 +74,12 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
 
         <button
           type="button"
-          onClick={() => fileInput.current?.click()}
+          onClick={projectPicker.open}
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
         >
           Open project
         </button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={async (e) => {
-            const file = e.target.files?.[0]
-            e.target.value = ''
-            if (!file) return
-            const loaded = fromProjectFile(await file.text())
-            if (!loaded) return setLoadError('That is not a Universal DIY project file, or it has been damaged.')
-            setLoadError('')
-            replace(loaded.design, loaded.unit, loaded.notes)
-          }}
-        />
+        <input {...projectPicker.inputProps} className="hidden" />
 
         <button
           type="button"

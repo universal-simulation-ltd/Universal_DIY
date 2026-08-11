@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
+import { useFileDrop } from '@unisim/sdk'
 import { downloadCsv, safeFilename, toCsv } from '../../lib/csv'
 import { estimateSheets } from '../../lib/materials'
 import { type PartsCutlist, type PartsProject } from '../../lib/parts'
@@ -23,8 +24,26 @@ export default function PartsExports({ project, cutlist }: { project: PartsProje
   const unit = usePartsStore((s) => s.unit)
   const notes = usePartsStore((s) => s.notes)
   const replace = usePartsStore((s) => s.replace)
-  const fileInput = useRef<HTMLInputElement>(null)
   const [loadError, setLoadError] = useState('')
+
+  // Same picker shape as the box page's Exports panel — SDK input mechanics,
+  // no drop target, one button.
+  const projectPicker = useFileDrop({
+    onFiles: (files) => { void openProject(files[0]) },
+    accept: '.json,application/json',
+    multiple: false,
+    clickToBrowse: false,
+  })
+
+  async function openProject(file: File | undefined) {
+    if (!file) return
+    const loaded = fromPartsFile(await file.text())
+    if (!loaded) {
+      return setLoadError('That is not a Universal DIY parts list, or it has been damaged. A saved box is a different file — open that on the box page.')
+    }
+    setLoadError('')
+    replace(loaded.project, loaded.unit, loaded.notes)
+  }
 
   const stem = safeFilename(project.name, 'cut')
   const sheet = useSheet()
@@ -71,28 +90,12 @@ export default function PartsExports({ project, cutlist }: { project: PartsProje
 
         <button
           type="button"
-          onClick={() => fileInput.current?.click()}
+          onClick={projectPicker.open}
           className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
         >
           Open project
         </button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".json,application/json"
-          className="hidden"
-          onChange={async (e) => {
-            const file = e.target.files?.[0]
-            e.target.value = ''
-            if (!file) return
-            const loaded = fromPartsFile(await file.text())
-            if (!loaded) {
-              return setLoadError('That is not a Universal DIY parts list, or it has been damaged. A saved box is a different file — open that on the box page.')
-            }
-            setLoadError('')
-            replace(loaded.project, loaded.unit, loaded.notes)
-          }}
-        />
+        <input {...projectPicker.inputProps} className="hidden" />
       </div>
 
       {loadError && <p className="mt-2 text-xs text-red-600">{loadError}</p>}
