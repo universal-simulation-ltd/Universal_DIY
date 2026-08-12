@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { UniversalAppsNavBar } from '@unisim/sdk'
+import { UniversalAppsNavBar, UpdateNotice } from '@unisim/sdk'
 import AppMenu from './components/Header/AppMenu'
 import ProductLogo from './components/Header/ProductLogo'
 import DiyApp from './components/diy/DiyApp'
@@ -44,6 +44,13 @@ export default function App() {
         contentClassName={CONTAINER}
         className="no-print"
       />
+
+      {/* Renders nothing until this tab is genuinely running superseded code.
+          See the SDK's useAppUpdate: an autoUpdate PWA hands the new worker
+          control but leaves the running page on its old JavaScript. */}
+      <div className={`${CONTAINER} no-print pt-4`}>
+        <UpdateNotice />
+      </div>
 
       <main className="flex-1">
         {showCalculator ? <DiyApp /> : route === 'parts' ? <PartsApp /> : <Landing />}
