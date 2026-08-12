@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { CONTAINER } from '../../lib/layout'
-import { currentRoute, hrefFor, navigate } from '../../lib/route'
+import { arrivedByClick, currentRoute, hrefFor, navigate } from '../../lib/route'
 import { useCutlist, useDiyStore } from '../../stores/diyStore'
 import SheetPlan from '../sheet/SheetPlan'
 import BoxInputs from './BoxInputs'
@@ -20,8 +20,15 @@ export default function DiyApp() {
   // /diy/cutlist is a working alias for the same one-tool app, and arriving on
   // it is not a no-op: somebody who typed that URL wants the list, so the page
   // opens scrolled to it.
+  //
+  // Only somebody who *asked for that URL*, though. Clicking a template on the
+  // landing page lands on the same route, and there the jump was actively wrong
+  // — the reader was part-way down a grid, navigate() put them back at the top,
+  // and then this dragged them past the size inputs to a list of a box they had
+  // not typed a number into yet. A picked template opens at the top of its
+  // page, like anything else reached by a click.
   useEffect(() => {
-    if (currentRoute() === 'cutlist') {
+    if (currentRoute() === 'cutlist' && !arrivedByClick()) {
       listRef.current?.scrollIntoView({ block: 'start' })
     }
   }, [])

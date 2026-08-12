@@ -65,6 +65,25 @@ export function hrefFor(route: Route, base = typeof window === 'undefined' ? '/'
 
 const listeners = new Set<() => void>()
 
+/**
+ * Has anything in the app navigated since the document loaded?
+ *
+ * The distinction a page needs is not "which route am I", it is "did somebody
+ * click their way here, or did they arrive by asking for this URL". A page
+ * reached by a click starts at the top — the click is the context, and moving
+ * the viewport somewhere the reader did not ask for loses the header that says
+ * what they just landed on. A page reached by its own URL has no such context,
+ * so it may open at the part of itself the URL named.
+ *
+ * `replace` does not count: it is the address bar being tidied for the arrival
+ * already in progress (App.tsx normalising a shared link), not a second one.
+ */
+let navigatedInApp = false
+
+export function arrivedByClick(): boolean {
+  return navigatedInApp
+}
+
 /** Subscribe to route changes — both our own pushes and the browser's Back. */
 export function subscribeRoute(fn: () => void): () => void {
   listeners.add(fn)
@@ -92,6 +111,13 @@ export function navigate(route: Route, { keepHash = false, replace = false }: Na
   if (typeof window === 'undefined') return
   const url = hrefFor(route) + (keepHash ? window.location.hash : '')
   window.history[replace ? 'replaceState' : 'pushState'](null, '', url)
-  if (!replace) window.scrollTo(0, 0)
+  if (!replace) {
+    navigatedInApp = true
+    // After the push, not before: the browser attributes a scroll to whichever
+    // history entry is current, so scrolling second leaves the entry we just
+    // left remembering where the reader was. Back returns to the template they
+    // clicked, and forward-to-here still opens at the top.
+    window.scrollTo(0, 0)
+  }
   for (const fn of listeners) fn()
 }
