@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { hrefFor, pathAfterBase, routeFor } from './route'
+import { describe, expect, it, vi } from 'vitest'
+import { arrivedByClick, hrefFor, navigate, pathAfterBase, routeFor } from './route'
 
 describe('/diy is the landing page and /diy/cutlist is the calculator', () => {
   it('resolves under the production base path', () => {
@@ -48,5 +48,46 @@ describe('/diy is the landing page and /diy/cutlist is the calculator', () => {
     expect(pathAfterBase('/diy/cutlist', '/diy/')).toBe('cutlist')
     expect(pathAfterBase('/diy/', '/diy/')).toBe('')
     expect(pathAfterBase('/other/thing', '/diy/')).toBe('other/thing')
+  })
+})
+
+// A page reached by a click opens at the top of itself. Picking a template
+// from half-way down the grid used to land on the calculator part-way down
+// too — past the size inputs, at a cut list for a box no number had been typed
+// into yet. `navigate` puts the viewport at the top, and `arrivedByClick` is
+// how the page it lands on knows not to move it again.
+describe('a clicked-through page starts at the top', () => {
+  it('scrolls to the top on a push, and records that the arrival was a click', () => {
+    const scrollTo = vi.fn()
+    const pushState = vi.fn()
+    const replaceState = vi.fn()
+    vi.stubGlobal('window', {
+      location: { pathname: '/', hash: '' },
+      history: { pushState, replaceState },
+      scrollTo,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })
+
+    // A fresh document: nothing has been clicked, so a deep link may still open
+    // a page at the part of itself its URL named.
+    expect(arrivedByClick()).toBe(false)
+
+    navigate('cutlist')
+    expect(pushState).toHaveBeenCalledTimes(1)
+    expect(scrollTo).toHaveBeenCalledWith(0, 0)
+    expect(arrivedByClick()).toBe(true)
+
+    // The scroll happens after the push, so the entry we left keeps the reader's
+    // place in the template grid for Back.
+    expect(pushState.mock.invocationCallOrder[0]).toBeLessThan(scrollTo.mock.invocationCallOrder[0])
+
+    // A replace is the address bar being tidied for an arrival already in
+    // progress — not a second one, and not a reason to move the viewport.
+    navigate('cutlist', { replace: true, keepHash: true })
+    expect(replaceState).toHaveBeenCalledTimes(1)
+    expect(scrollTo).toHaveBeenCalledTimes(1)
+
+    vi.unstubAllGlobals()
   })
 })
