@@ -32,13 +32,19 @@ export default function ProductLogo() {
     >
       <style>{CSS}</style>
       <svg viewBox="0 0 64 64" className="h-6 w-6" aria-hidden="true">
-        <rect x="0" y="0" width="64" height="64" rx="14" fill="#0f172a" />
-        <g fill="none" strokeWidth={4} strokeLinejoin="round" stroke="#fe8c01">
+        <defs>
+          <linearGradient id="uam-nav-diy-tile" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#fe8c01" />
+            <stop offset="1" stopColor="#e05504" />
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill="url(#uam-nav-diy-tile)" />
+        <g fill="none" strokeWidth={4} strokeLinejoin="round" stroke="#ffffff">
           <rect x={10} y={18} width={44} height={30} rx={3} />
           <path d="M10 28h44" />
         </g>
-        <path d="M24 18v30" fill="none" strokeWidth={4} strokeLinejoin="round" stroke="#fe8c01" className="uam-diy-lap" />
-        <rect x={10} y={51} width={44} height={4} rx={2} fill="#ff9a1f" className="uam-diy-edge" />
+        <path d="M24 18v30" fill="none" strokeWidth={4} strokeLinejoin="round" stroke="#ffffff" className="uam-diy-lap" />
+        <rect x={10} y={51} width={44} height={4} rx={2} fill="#fed7aa" className="uam-diy-edge" />
       </svg>
     </span>
   )
