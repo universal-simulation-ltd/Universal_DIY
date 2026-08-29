@@ -1,3 +1,4 @@
+import { AdvancedMenu } from '@unisim/sdk'
 import { EXAMPLES } from '../../lib/examples'
 import { navigate } from '../../lib/route'
 import { useDiyStore } from '../../stores/diyStore'
@@ -36,6 +37,19 @@ export default function AppMenu() {
         onClick={() => {
           reset()
           navigate('cutlist')
+        }}
+      />
+
+      {/* Advanced — the SDK's own category, so every app in the suite has one in
+          the same place, and whatever goes in it next is one change rather than
+          nineteen. "About this app" is always its last row. */}
+      <AdvancedMenu
+        about={{
+          repo:    'https://github.com/universal-simulation-ltd/Universal_DIY',
+          subject: 'Your measurements',
+          plural:  true,
+          headline: 'Other calculators run your measurements on their servers.',
+          version: __APP_VERSION__,
         }}
       />
     </>
