@@ -1,4 +1,9 @@
 import { AdvancedMenu } from '@unisim/sdk'
+// Generated — `npm run credits` after any dependency change. Never edit it by
+// hand: it is read off the installed tree, so a hand-kept list drifts from the
+// lockfile the first time anyone upgrades anything, and a credits list naming a
+// package we removed is worse than no list at all.
+import credits from '../../generated/credits.json'
 import { EXAMPLES } from '../../lib/examples'
 import { navigate } from '../../lib/route'
 import { useDiyStore } from '../../stores/diyStore'
@@ -50,6 +55,8 @@ export default function AppMenu() {
           plural:  true,
           headline: 'Other calculators run your measurements on their servers.',
           version: __APP_VERSION__,
+          credits,
+          noticesHref: 'https://github.com/universal-simulation-ltd/Universal_DIY/blob/main/THIRD-PARTY-NOTICES.md',
         }}
       />
     </>
