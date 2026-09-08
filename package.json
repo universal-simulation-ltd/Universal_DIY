@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "description": "Universal DIY — parametric cut lists for simple butt-joint boxes, entirely in your browser.",
   "scripts": {
     "dev": "vite",

@@ -317,4 +317,4 @@ Issues and pull requests are welcome. Two things to know first:
 2. **The "will not do" table above is a design decision, not a backlog.** A pull
    request adding dados or a 3D view will be declined, however good it is.
 
-MIT licensed — free and open source, like all Universal Apps.
+AGPL-3.0 licensed — free and open source, like all Universal Apps.
