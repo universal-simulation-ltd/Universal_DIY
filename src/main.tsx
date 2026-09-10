@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { UniversalProvider } from '@unisim/sdk'
 import App from './App'
-import UsageTracker from './UsageTracker'
+import { UsageTracker } from '@unisim/sdk'
 import './index.css'
 
 // Universal DIY is pure arithmetic — the calculator path makes no network call
