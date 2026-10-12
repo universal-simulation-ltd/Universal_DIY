@@ -282,11 +282,8 @@ than the stock is reported as impossible rather than quietly squeezed in.
 
 Nothing you type, draw or print leaves the device; designs are shared through
 the link's `#` part, which browsers never send to a server. There is no sign-in
-and no usage tracking. The one thing sent is the suite user count
-(`@unisim/sdk` presence): your browser keeps a random install id, not tied to
-you or to an account, and sends it with the kind of device (web, phone or
-computer) to UNI·SIM's Supabase every 45 seconds while the app is open and on
-screen.
+and no usage tracking, and no user count: the app sends nothing about you or
+your visit to UNI·SIM's servers.
 
 ## Running it
 
