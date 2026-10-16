@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import {
   PANEL_IDS,
   PANEL_NAMES,
@@ -32,6 +33,7 @@ export default function WrapOrder() {
   const movePanel = useDiyStore((s) => s.movePanel)
   const setHover = useDiyStore((s) => s.setHover)
   const hover = useDiyStore((s) => s.hover)
+  const orderId = useId()
 
   const prio = priorities(design.order)
   const active = matchPreset(design.order)
@@ -139,13 +141,14 @@ export default function WrapOrder() {
           type="button"
           onClick={() => setAdvanced(!advanced)}
           aria-expanded={advanced}
+          aria-controls={orderId}
           className="text-xs font-medium text-amber-800 hover:text-amber-900 underline-offset-2 hover:underline"
         >
           {advanced ? 'Hide' : 'Show'} the wrap order ({design.order.map((p) => PANEL_NAMES[p].replace(' side', '')).join(' · ')})
         </button>
 
         {advanced && (
-          <ol className="mt-3 space-y-1">
+          <ol id={orderId} className="mt-3 space-y-1">
             {design.order.map((panel, index) => (
               <li
                 key={panel}

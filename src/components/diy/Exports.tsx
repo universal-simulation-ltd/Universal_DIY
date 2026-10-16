@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useFileDrop } from '@unisim/sdk'
+import { useFileDrop, useRevealOnOpen } from '@unisim/sdk'
 import { downloadCsv, safeFilename, toCsv } from '../../lib/csv'
 import { estimateSheets } from '../../lib/materials'
 import { buildShareUrl } from '../../lib/share'
@@ -14,6 +14,7 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
   const replace = useDiyStore((s) => s.replace)
   const [shareUrl, setShareUrl] = useState('')
   const [loadError, setLoadError] = useState('')
+  const revealShareRef = useRevealOnOpen()
 
   // "Open project" is one button in a row of them, so the SDK hook is here for
   // its input mechanics rather than a drop target.
@@ -98,7 +99,7 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
       {loadError && <p className="mt-2 text-xs text-red-600">{loadError}</p>}
 
       {shareUrl && (
-        <div className="mt-3">
+        <div ref={revealShareRef} className="mt-3">
           <label htmlFor="share-url" className="block text-xs text-slate-600 mb-1">
             The whole design is in the link — nothing is stored on a server.
           </label>
