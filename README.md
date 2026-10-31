@@ -281,9 +281,12 @@ than the stock is reported as impossible rather than quietly squeezed in.
 ## Privacy
 
 Nothing you type, draw or print leaves the device; designs are shared through
-the link's `#` part, which browsers never send to a server. There is no sign-in
-and no usage tracking, and no user count: the app sends nothing about you or
-your visit to UNI·SIM's servers.
+the link's `#` part, which browsers never send to a server. There is no account
+of its own and no usage tracking, and no user count: the app sends nothing
+about your visit to UNI·SIM's servers. If your browser already holds a UNI·SIM
+sign-in (a Universal ID), the app recognises it so your suite-wide settings
+come with you, and Tune this app offers a discreet Sign in; your designs are
+never tied to it.
 
 ## Running it
 
