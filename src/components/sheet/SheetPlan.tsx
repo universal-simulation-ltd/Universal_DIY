@@ -4,6 +4,7 @@ import { groupForNesting, nest, type NestGroup, type NestPiece, type NestResult,
 import { areaM2, formatShort, type Unit } from '../../lib/units'
 import { useSheet, useSheetStore } from '../../stores/sheetStore'
 import LengthField from '../diy/LengthField'
+import { Key, PlusIcon, btnSecondarySm } from '../ui'
 
 /**
  * The cutting plan — where every piece goes on the sheet.
@@ -144,9 +145,10 @@ export default function SheetPlan({ pieces, unit, mmDecimals }: Props) {
         <button
           type="button"
           onClick={addOffcut}
-          className="mt-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={`${btnSecondarySm} mt-2`}
         >
-          + Add an offcut
+          <Key><PlusIcon /></Key>
+          Add an offcut
         </button>
 
         {offcuts.length > 0 && plans.length > 1 && (

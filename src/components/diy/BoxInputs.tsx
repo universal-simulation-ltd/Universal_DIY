@@ -47,16 +47,15 @@ export default function BoxInputs() {
           <span className="block text-xs font-medium text-slate-600 mb-1">Units</span>
           {/* ONE display unit for the whole document. No per-field units — a cut
               list with mixed units is how somebody cuts the wrong piece. */}
-          <div className="inline-flex rounded-md border border-slate-300 overflow-hidden" role="group" aria-label="Display unit">
+          {/* The suite's tray tabs (SDK 0.216): aria-pressed selects. */}
+          <div className="u-tabs" role="group" aria-label="Display unit">
             {UNITS.map((u) => (
               <button
                 key={u}
                 type="button"
                 onClick={() => setUnit(u)}
                 aria-pressed={unit === u}
-                className={`px-3 py-1.5 text-sm border-l first:border-l-0 border-slate-300 ${
-                  unit === u ? 'bg-amber-700 text-white font-medium' : 'bg-white text-slate-700 hover:bg-amber-50'
-                }`}
+                className="u-tab"
               >
                 {UNIT_LABEL[u]}
               </button>

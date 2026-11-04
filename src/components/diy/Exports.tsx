@@ -7,6 +7,7 @@ import { downloadJson, fromProjectFile, toProjectFile } from '../../lib/storage'
 import type { Cutlist, Design } from '../../lib/panels'
 import { useDiyStore } from '../../stores/diyStore'
 import { useSheet } from '../../stores/sheetStore'
+import { Key, OpenIcon, PrintIcon, SaveIcon, btnPrimary, btnSecondary } from '../ui'
 
 export default function Exports({ design, cutlist }: { design: Design; cutlist: Cutlist }) {
   const unit = useDiyStore((s) => s.unit)
@@ -51,8 +52,9 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+          className={btnPrimary}
         >
+          <Key><PrintIcon /></Key>
           Print / Save as PDF
         </button>
 
@@ -60,7 +62,7 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
           type="button"
           data-testid="download-csv"
           onClick={() => downloadCsv(toCsv(cutlist.types, design.material, notes), `${stem}-cutlist.csv`)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={btnSecondary}
         >
           Download CSV
         </button>
@@ -68,16 +70,18 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
         <button
           type="button"
           onClick={() => downloadJson(toProjectFile({ design, unit, notes }), `${stem}.unidiy.json`)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={btnSecondary}
         >
+          <Key><SaveIcon /></Key>
           Save project
         </button>
 
         <button
           type="button"
           onClick={projectPicker.open}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={btnSecondary}
         >
+          <Key><OpenIcon /></Key>
           Open project
         </button>
         <input {...projectPicker.inputProps} className="hidden" />
@@ -90,7 +94,7 @@ export default function Exports({ design, cutlist }: { design: Design; cutlist: 
             window.history.replaceState(null, '', url)
             void navigator.clipboard?.writeText(url).catch(() => undefined)
           }}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={btnSecondary}
         >
           Copy link to this design
         </button>

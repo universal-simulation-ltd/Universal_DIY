@@ -10,6 +10,7 @@ import {
 } from '../../lib/parts'
 import { formatShort } from '../../lib/units'
 import { usePartsStore } from '../../stores/partsStore'
+import { btnQuietSm, btnSecondarySm } from '../ui'
 
 /**
  * The join board: one bar per piece, drawn to a common scale, with a clickable
@@ -80,7 +81,7 @@ export default function JoinBoard({ project, cutlist }: { project: PartsProject;
             <button
               type="button"
               onClick={cancelArming}
-              className="rounded border border-amber-400 bg-white px-2 py-0.5 font-medium text-amber-900 hover:bg-amber-100"
+              className={btnQuietSm}
             >
               Cancel
             </button>
@@ -130,14 +131,14 @@ export default function JoinBoard({ project, cutlist }: { project: PartsProject;
                 <button
                   type="button"
                   onClick={() => flipJoint(joint.id)}
-                  className="no-print rounded border border-slate-300 bg-white px-2 py-0.5 font-medium text-slate-700 hover:bg-amber-50"
+                  className={`${btnSecondarySm} no-print`}
                 >
                   Swap which runs through
                 </button>
                 <button
                   type="button"
                   onClick={() => unjoin(joint.id)}
-                  className="no-print rounded border border-slate-300 bg-white px-2 py-0.5 font-medium text-slate-700 hover:bg-amber-50"
+                  className={`${btnSecondarySm} no-print`}
                 >
                   Separate
                 </button>

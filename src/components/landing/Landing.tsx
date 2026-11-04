@@ -9,6 +9,7 @@ import { useDiyStore } from '../../stores/diyStore'
 import HeroAssembly from './HeroAssembly'
 import JoinSketch from './JoinSketch'
 import TemplatePreview from './TemplatePreview'
+import { btnPrimary } from '../ui'
 
 /**
  * The landing page: "what are you building?" before "type three numbers".
@@ -62,7 +63,7 @@ export default function Landing() {
                   <button
                     type="button"
                     onClick={() => navigate('cutlist')}
-                    className="mt-2 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+                    className={`${btnPrimary} mt-2`}
                   >
                     Carry on with it →
                   </button>

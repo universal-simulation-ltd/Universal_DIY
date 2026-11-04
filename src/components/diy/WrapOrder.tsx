@@ -99,15 +99,14 @@ export default function WrapOrder() {
                   </label>
                 </td>
                 <td className="py-1.5">
-                  <div className="inline-flex rounded-md border border-slate-300 overflow-hidden" role="group">
+                  {/* Tray tabs (SDK 0.216), kept compact for a table row. */}
+                  <div className="u-tabs p-0.5" role="group">
                     <button
                       type="button"
                       disabled={!present}
                       onClick={() => setOutermost(panel, true)}
                       aria-pressed={prio[panel] === 1}
-                      className={`px-2.5 py-1 text-xs ${
-                        prio[panel] === 1 ? 'bg-amber-700 text-white font-medium' : 'bg-white text-slate-700 hover:bg-amber-50'
-                      } disabled:opacity-40 disabled:hover:bg-white`}
+                      className="u-tab px-2.5 py-1 text-xs disabled:opacity-40"
                     >
                       Extends to the edge
                     </button>
@@ -116,9 +115,7 @@ export default function WrapOrder() {
                       disabled={!present}
                       onClick={() => setOutermost(panel, false)}
                       aria-pressed={prio[panel] === PANEL_IDS.length}
-                      className={`px-2.5 py-1 text-xs border-l border-slate-300 ${
-                        prio[panel] === PANEL_IDS.length ? 'bg-amber-700 text-white font-medium' : 'bg-white text-slate-700 hover:bg-amber-50'
-                      } disabled:opacity-40 disabled:hover:bg-white`}
+                      className="u-tab px-2.5 py-1 text-xs disabled:opacity-40"
                     >
                       Sits inside
                     </button>

@@ -3,6 +3,7 @@ import { type Part, type PartsCutlist, type PartsProject } from '../../lib/parts
 import { UNIT_LABEL, type Unit } from '../../lib/units'
 import { useLengthText } from '../../lib/useLengthText'
 import { usePartsStore } from '../../stores/partsStore'
+import { Key, PlusIcon, btnSecondary } from '../ui'
 
 const UNITS: Unit[] = ['mm', 'cm', 'in']
 
@@ -47,16 +48,15 @@ export default function PartsTable({ project, cutlist }: { project: PartsProject
           <span className="mb-1 block text-xs font-medium text-slate-600">Units</span>
           {/* One display unit for the whole sheet, as on the box page. A cut
               list with mixed units is how somebody cuts the wrong piece. */}
-          <div className="inline-flex overflow-hidden rounded-md border border-slate-300" role="group" aria-label="Display unit">
+          {/* The suite's tray tabs (SDK 0.216): aria-pressed selects. */}
+          <div className="u-tabs" role="group" aria-label="Display unit">
             {UNITS.map((u) => (
               <button
                 key={u}
                 type="button"
                 onClick={() => setUnit(u)}
                 aria-pressed={unit === u}
-                className={`border-l border-slate-300 px-3 py-1.5 text-sm first:border-l-0 ${
-                  unit === u ? 'bg-amber-700 font-medium text-white' : 'bg-white text-slate-700 hover:bg-amber-50'
-                }`}
+                className="u-tab"
               >
                 {UNIT_LABEL[u]}
               </button>
@@ -205,9 +205,10 @@ export default function PartsTable({ project, cutlist }: { project: PartsProject
         <button
           type="button"
           onClick={addPart}
-          className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+          className={btnSecondary}
         >
-          + Add a piece
+          <Key><PlusIcon /></Key>
+          Add a piece
         </button>
         <p className="text-xs text-slate-500">
           Length runs along the grain. Joints are set on the board below — a piece with no joints is

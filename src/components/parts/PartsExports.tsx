@@ -7,6 +7,7 @@ import { downloadJson, fromPartsFile, toPartsFile } from '../../lib/storage'
 import { areaM2 } from '../../lib/units'
 import { usePartsStore } from '../../stores/partsStore'
 import { useSheet } from '../../stores/sheetStore'
+import { Key, OpenIcon, PrintIcon, SaveIcon, btnPrimary, btnSecondary } from '../ui'
 
 /**
  * Take-it-to-the-workshop, for a free parts list.
@@ -66,8 +67,9 @@ export default function PartsExports({ project, cutlist }: { project: PartsProje
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
+          className={btnPrimary}
         >
+          <Key><PrintIcon /></Key>
           Print / Save as PDF
         </button>
 
@@ -75,7 +77,7 @@ export default function PartsExports({ project, cutlist }: { project: PartsProje
           type="button"
           data-testid="download-parts-csv"
           onClick={() => downloadCsv(toCsv(cutlist.types, '', notes), `${stem}-cutlist.csv`)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={btnSecondary}
         >
           Download CSV
         </button>
@@ -83,16 +85,18 @@ export default function PartsExports({ project, cutlist }: { project: PartsProje
         <button
           type="button"
           onClick={() => downloadJson(toPartsFile({ project, unit, notes }), `${stem}.unidiy-parts.json`)}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={btnSecondary}
         >
+          <Key><SaveIcon /></Key>
           Save project
         </button>
 
         <button
           type="button"
           onClick={projectPicker.open}
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-amber-50"
+          className={btnSecondary}
         >
+          <Key><OpenIcon /></Key>
           Open project
         </button>
         <input {...projectPicker.inputProps} className="hidden" />
