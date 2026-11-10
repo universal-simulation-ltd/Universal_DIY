@@ -35,6 +35,9 @@ export default function App() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-100">
       <UniversalAppsNavBar
+        // Signed in, the bar says whose it is: "Bradley’s DIY" ("James’ DIY",
+        // "My DIY" with no name), and Tune this app gets the account area (James, 2026-11-10 rollout).
+        personalTitle={(name) => (name ? `${/s$/i.test(name.trim()) ? `${name}’` : `${name}’s`} DIY` : 'My DIY')}
         product="diy"
         productLogo={<ProductLogo />}
         productHomeHref={import.meta.env.BASE_URL}
