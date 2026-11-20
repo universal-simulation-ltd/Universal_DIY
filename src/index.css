@@ -183,6 +183,15 @@ body {
     padding: 0 !important;
   }
 
+  /* The suite's box marks (the Key box's tab, the Orbit corner) are screen
+     chrome too. The rule above forces every label black on no fill, which
+     would leave the tab as stray capitals floating over the heading. */
+  .u-box__key,
+  .u-box::before,
+  .u-box::after {
+    display: none !important;
+  }
+
   /* An eleven-column cut list does not fit A4 at screen sizes, and the screen's
      horizontal scroller CLIPS on paper rather than scrolling — which silently
      ate the Notes column. Let it wrap instead. */

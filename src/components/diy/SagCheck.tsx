@@ -65,7 +65,7 @@ export default function SagCheck({ design, cutlist }: { design: Design; cutlist:
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-5">
         {advice.map((a) => <Verdict key={a.panel} a={a} fmt={fmt} unit={unit} />)}
       </div>
 
@@ -114,12 +114,16 @@ export default function SagCheck({ design, cutlist }: { design: Design; cutlist:
 
 function Verdict({ a, fmt, unit }: { a: ShelfAdvice; fmt: (mm: number) => string; unit: string }) {
   const good = a.sag.ok
+  // A check against a stated limit: the suite's Key box (BRANDING.md → Boxes,
+  // C), its tab naming the check and the limit. The tab stays neutral; green
+  // or amber stays on the card, and the title says the verdict in words.
   return (
     <div
-      className={`rounded-md border px-3 py-2.5 ${
+      className={`u-box u-box--key border px-3 pb-2.5 pt-5 ${
         good ? 'border-emerald-200 bg-emerald-50' : 'border-amber-300 bg-amber-50'
       }`}
     >
+      <span className="u-box__key">Sag · span ÷ {SAG_LIMIT_RATIO}</span>
       <p className={`text-sm font-semibold ${good ? 'text-emerald-900' : 'text-amber-900'}`}>
         {a.part} — {good ? 'stiff enough' : 'will sag more than it should'}
       </p>

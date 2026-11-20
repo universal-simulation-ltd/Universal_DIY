@@ -25,8 +25,12 @@ export default function CutList({ design, cutlist }: { design: Design; cutlist: 
   const fmt = (mm: number) => formatLength(mm, { unit, mmDecimals })
   const panelOf = (letter: string) => cutlist.pieces.find((p) => p.typeLetter === letter)?.panel ?? null
 
+  // The record that goes to the saw: the suite's Key box (BRANDING.md →
+  // Boxes, C), its tab naming it and how many pieces it holds. On paper the
+  // tab goes (index.css → print): the sheet is the card there.
   return (
-    <section className="print-sheet rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+    <section className="print-sheet u-box u-box--key px-4 pb-4 pt-6 sm:px-5 sm:pb-5 sm:pt-7">
+      <span className="u-box__key">Cut list · {cutlist.pieces.length} {cutlist.pieces.length === 1 ? 'piece' : 'pieces'}</span>
       <header className="mb-4">
         <h2 className="text-base font-semibold text-slate-900">
           Cut list — {design.name || 'Untitled box'}

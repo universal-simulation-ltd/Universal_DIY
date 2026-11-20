@@ -23,9 +23,13 @@ export default function PartsCutList({ project, cutlist }: { project: PartsProje
   const fmt = (mm: number) => formatLength(mm, { unit, mmDecimals })
   const pieceOf = (letter: string) => cutlist.pieces.find((p) => p.typeLetter === letter)
   const multiProject = cutlist.groups.length > 1
+  const pieceCount = cutlist.pieces.reduce((n, p) => n + p.qty, 0)
 
+  // The record that goes to the saw: the suite's Key box (BRANDING.md →
+  // Boxes, C), as on the box page. On paper the tab goes (index.css → print).
   return (
-    <section className="print-sheet rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+    <section className="print-sheet u-box u-box--key px-4 pb-4 pt-6 sm:px-5 sm:pb-5 sm:pt-7">
+      <span className="u-box__key">Cut list · {pieceCount} {pieceCount === 1 ? 'piece' : 'pieces'}</span>
       <header className="mb-4">
         <h2 className="text-base font-semibold text-slate-900">
           Cut list — {project.name || 'Untitled cut'}
@@ -35,7 +39,7 @@ export default function PartsCutList({ project, cutlist }: { project: PartsProje
           <Fact term="Units" value={unit} />
           <Fact
             term="Pieces"
-            value={`${cutlist.pieces.reduce((n, p) => n + p.qty, 0)} from ${cutlist.types.length} sizes`}
+            value={`${pieceCount} from ${cutlist.types.length} sizes`}
           />
           <Fact term="Board area" value={`${areaM2(cutlist.totalArea).toFixed(2)} m²`} />
           <Fact term="Joints" value={String(project.joints.length)} />

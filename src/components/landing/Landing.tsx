@@ -135,7 +135,8 @@ export default function Landing() {
           reads it as one. The six above are all the same model with different
           panels present; this is a different model — no box at all, just the
           pieces and where they meet. A card in the grid would promise a shape
-          it does not have.
+          it does not have. Like the templates, it is a card you tap to open
+          something: the suite's Orbit corner (BRANDING.md → Boxes, A).
         */}
         <a
           href={hrefFor('parts')}
@@ -145,7 +146,7 @@ export default function Landing() {
               navigate('parts')
             }
           }}
-          className="diy-card mt-5 block rounded-lg border border-slate-300 bg-white p-4 transition-colors hover:border-amber-400 hover:bg-amber-50/40 focus:outline-none focus-visible:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-200 sm:p-5"
+          className="diy-card u-box u-box--orbit mt-5 block p-4 sm:p-5"
         >
           <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,15rem)]">
             <div>
@@ -228,6 +229,9 @@ function TemplateCard({ template }: { template: Template }) {
   // address bar clean.
   const href = `${hrefFor('cutlist')}#d=${encodeShare({ design, unit })}`
 
+  // A card you tap to open a template: the suite's Orbit corner (BRANDING.md
+  // → Boxes, A). Its hover sweeps the arc round; `diy-card` still lights the
+  // drawing's pieces.
   return (
     <a
       href={href}
@@ -239,7 +243,7 @@ function TemplateCard({ template }: { template: Template }) {
       }}
       onMouseEnter={() => setReplay((n) => n + 1)}
       onFocus={() => setReplay((n) => n + 1)}
-      className="diy-card group block h-full rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-amber-400 hover:bg-amber-50/40 focus:outline-none focus-visible:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-200"
+      className="diy-card u-box u-box--orbit group block h-full p-4"
     >
       <div className="h-28 sm:h-32">
         <TemplatePreview design={design} replay={replay} />
