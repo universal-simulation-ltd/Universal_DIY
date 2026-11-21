@@ -41,7 +41,7 @@ export default function TemplatePreview({ design, replay = 0 }: { design: Design
     >
       {preview.sections.map((s) => (
         <g key={s.id}>
-          <text x={0} y={s.y - lead * 0.32} fontSize={fs} fill="#94a3b8">
+          <text x={0} y={s.y - lead * 0.32} fontSize={fs} className="fill-slate-400">
             {s.id}
           </text>
           <rect
@@ -50,7 +50,7 @@ export default function TemplatePreview({ design, replay = 0 }: { design: Design
             width={s.width}
             height={s.height}
             fill="none"
-            stroke="#cbd5e1"
+            className="stroke-slate-300"
             strokeWidth={stroke}
             strokeDasharray={`${stroke * 5} ${stroke * 4}`}
           />
@@ -61,7 +61,7 @@ export default function TemplatePreview({ design, replay = 0 }: { design: Design
         {preview.rects.map((r) => (
           <rect
             key={r.id}
-            className="diy-piece"
+            className="diy-piece fill-slate-200 stroke-slate-700"
             style={{
               // Read by the diy-fly-in keyframes. Unitless numbers are invalid in
               // a CSS translate, and one px in an SVG transform is one user unit
@@ -74,8 +74,6 @@ export default function TemplatePreview({ design, replay = 0 }: { design: Design
             y={r.y}
             width={r.w}
             height={r.h}
-            fill="#e2e8f0"
-            stroke="#334155"
             strokeWidth={stroke * 1.2}
           />
         ))}

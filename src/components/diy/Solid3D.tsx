@@ -95,7 +95,7 @@ export default function Solid3D({ design, cutlist }: { design: Design; cutlist: 
       <svg
         ref={svgRef}
         viewBox={`${bounds.minX - pad} ${bounds.minY - pad} ${w + pad * 2} ${h + pad * 2}`}
-        className="w-full h-auto touch-none select-none cursor-grab active:cursor-grabbing"
+        className="diy-paper rounded-md w-full h-auto touch-none select-none cursor-grab active:cursor-grabbing"
         role="img"
         aria-label={
           `The assembled ${design.name || 'box'}, ${Math.round(design.width)} by ${Math.round(design.depth)} by ` +

@@ -45,6 +45,9 @@ Part of the [Universal Apps](https://opensource.unisim.co.uk) suite by
   grain and the trim off the factory edges. See below.
 - **CSV export** in `Length,Width,Qty,Label,Material,Grain,Notes` — the column
   order that pastes straight into cutlistoptimizer or OptiCutter.
+- **Light or dark.** Tune this app → Light, Dark or System (match the device); it opens
+  light. Dark is for the screen: the drawings stay paper-white and the printed
+  sheet is the same either way.
 - **Save, open and share.** A `.unidiy.json` project file, and the whole design
   encoded in the URL hash so a link needs no server at all.
 

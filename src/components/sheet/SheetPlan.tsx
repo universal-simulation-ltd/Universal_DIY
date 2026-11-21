@@ -313,7 +313,7 @@ function SheetDrawing({ layout, result, total, unit, mmDecimals, scaleW }: {
           height stops a 420 mm offcut reserving 1220 mm of blank canvas. */}
       <svg
         viewBox={`${-pad} ${-pad} ${scaleW + pad * 2} ${nominalH + pad * 2.4}`}
-        className="w-full h-auto"
+        className="diy-paper rounded-md w-full h-auto"
         role="img"
         aria-label={`${own.isOffcut ? `Your ${Math.round(own.w)} by ${Math.round(own.h)} millimetre offcut` : `Sheet ${layout.sheetNo}`}: ${layout.placements
           .map((p) => `${p.label} ${Math.round(p.w)} by ${Math.round(p.h)} millimetres at ${Math.round(p.x)}, ${Math.round(p.y)}`)

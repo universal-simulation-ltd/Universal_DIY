@@ -72,13 +72,12 @@ export default function HeroAssembly() {
       {/* The outer envelope: where the finished box will be, drawn before it
           arrives so the pieces fly into something rather than at nothing. */}
       <rect
-        className="diy-anno"
         x={0}
         y={0}
         width={width}
         height={height}
         fill="none"
-        stroke="#cbd5e1"
+        className="diy-anno stroke-slate-300"
         strokeWidth={stroke}
         strokeDasharray={`${stroke * 6} ${stroke * 5}`}
       />
@@ -103,8 +102,7 @@ export default function HeroAssembly() {
               y={r.y}
               width={r.w}
               height={r.h}
-              fill="#e2e8f0"
-              stroke="#334155"
+              className="fill-slate-200 stroke-slate-700"
               strokeWidth={stroke * 1.6}
             />
             <text
@@ -114,7 +112,7 @@ export default function HeroAssembly() {
               dominantBaseline="central"
               fontSize={letter * 0.62}
               fontWeight="700"
-              fill="#334155"
+              className="fill-slate-700"
               transform={upright ? `rotate(-90 ${r.x + r.w / 2} ${r.y + r.h / 2})` : undefined}
             >
               {labels[r.panel]}
@@ -156,7 +154,7 @@ export default function HeroAssembly() {
           label={`top ${Math.round(topPiece.w)}`}
           stroke={stroke}
           fs={fs}
-          color="#b45309"
+          tone="accent"
         />
         {/*
           The thickness, on a leader into the TOP panel rather than into a side.
@@ -167,9 +165,9 @@ export default function HeroAssembly() {
         */}
         <line
           x1={width * 0.32} y1={t * 0.6} x2={width * 0.15} y2={-padY * 0.22}
-          stroke="#475569" strokeWidth={stroke}
+          className="stroke-slate-600" strokeWidth={stroke}
         />
-        <text x={width * 0.16} y={-padY * 0.28} fontSize={fs * 0.8} fill="#475569">
+        <text x={width * 0.16} y={-padY * 0.28} fontSize={fs * 0.8} className="fill-slate-600">
           {`t = ${t} mm, never rounded`}
         </text>
       </g>
@@ -177,18 +175,28 @@ export default function HeroAssembly() {
   )
 }
 
+/**
+ * The two inks a dimension comes in, as Tailwind classes so they read the
+ * colour tokens and follow the theme (index.css). Written out in full: the
+ * class scanner cannot see a name assembled at runtime.
+ */
+const TONE = {
+  ink: { stroke: 'stroke-slate-600', fill: 'fill-slate-600' },
+  accent: { stroke: 'stroke-amber-700', fill: 'fill-amber-700' },
+}
+
 /** A dimension line with ticks at both ends and the number sitting on it. */
 function Dimension({
-  x1, y1, x2, y2, label, stroke, fs, vertical = false, color = '#475569',
+  x1, y1, x2, y2, label, stroke, fs, vertical = false, tone = 'ink',
 }: {
   x1: number; y1: number; x2: number; y2: number
-  label: string; stroke: number; fs: number; vertical?: boolean; color?: string
+  label: string; stroke: number; fs: number; vertical?: boolean; tone?: keyof typeof TONE
 }) {
   const tick = fs * 0.4
   const mx = (x1 + x2) / 2
   const my = (y1 + y2) / 2
   return (
-    <g stroke={color} strokeWidth={stroke} fill="none">
+    <g className={TONE[tone].stroke} strokeWidth={stroke} fill="none">
       <line x1={x1} y1={y1} x2={x2} y2={y2} />
       {vertical ? (
         <>
@@ -207,7 +215,7 @@ function Dimension({
         textAnchor="middle"
         dominantBaseline={vertical ? 'central' : undefined}
         fontSize={fs * 0.85}
-        fill={color}
+        className={TONE[tone].fill}
         stroke="none"
         transform={vertical ? `rotate(-90 ${mx + fs * 0.7} ${my})` : undefined}
       >

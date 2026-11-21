@@ -93,9 +93,14 @@ input has been run, not tested.
   every fill to white. The print block also forces the two sections side by side
   and caps the SVG height, or the drawing runs to three sheets and the cut list
   lands on page four.
-- **Light only, deliberately.** The suite rule is that an app opens light until
-  the user asks otherwise; here the deliverable is ink on paper, so there is no
-  dark palette and the comment in `index.css` says why.
+- **Light by default; dark is the screen only.** The app opens light (suite
+  rule) and Tune this app offers Light / Dark / Match my device
+  (`stores/themeStore.ts`, key `unisim-diy-theme`, mirrored in `index.html`'s
+  pre-paint script and checked by `src/lib/theme.test.ts`). Dark works by
+  redefining Tailwind's colour variables onto the suite's dark tokens inside
+  `@media screen`, so print never sees a dark value, and the drawings
+  (`.diy-paper`: diagram, 3D view, cutting plan) stay light paper on screen
+  too. The comment at the top of `index.css` explains the mapping.
 - **Orientation is a search variable in `nest.ts`, not a rule.** Opening a strip
   with the piece laid flat is the right default and is sometimes catastrophically
   wrong: three ungrained 1180 × 700 panels laid flat need **two** sheets, because

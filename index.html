@@ -13,6 +13,26 @@
     <meta name="keywords" content="cut list, cutlist calculator, box calculator, shelf unit calculator, cabinet carcass calculator, drawer box calculator, plywood box, butt joint, woodworking calculator, panel sizes, free cut list, offline" />
     <meta name="author" content="UNI·SIM" />
     <meta name="theme-color" content="#0f172a" />
+    <!-- Dark mode before the first paint. The theme store (src/stores/themeStore.ts)
+         applies the same class, but only once the module bundle has parsed — a
+         dark-mode user would see one light frame first. This only ever ADDS
+         `dark`: light is the default, so there is nothing to take away.
+         The app's key is its OVERRIDE (Tune this app); absent, it follows the
+         global `universal:color-scheme`, read here too, or someone whose only
+         choice is the global one gets a light frame and then a flip.
+         ⚠️ The key must match the store's; src/lib/theme.test.ts checks it. -->
+    <script>
+      try {
+        var pref = localStorage.getItem('unisim-diy-theme')
+          || localStorage.getItem('universal:color-scheme') || 'light'
+        if (pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark')
+          document.documentElement.style.colorScheme = 'dark'
+        }
+      } catch (e) {
+        /* private mode, storage disabled: light, exactly as the store falls back. */
+      }
+    </script>
     <link rel="canonical" href="https://opensource.unisim.co.uk/diy/" />
 
     <meta property="og:type" content="website" />

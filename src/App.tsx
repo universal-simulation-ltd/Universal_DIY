@@ -9,12 +9,16 @@ import { CONTAINER } from './lib/layout'
 import { navigate } from './lib/route'
 import { useRoute } from './lib/useRoute'
 import { useDiyStore } from './stores/diyStore'
+import { useThemeStore } from './stores/themeStore'
 
 const REPO_URL = 'https://github.com/universal-simulation-ltd/Universal_DIY'
 
 export default function App() {
   const route = useRoute()
   const origin = useDiyStore((s) => s.origin)
+  // The RESOLVED theme ('system' already turned into light or dark), which the
+  // navbar paints with; see stores/themeStore.ts.
+  const theme = useThemeStore((s) => s.effective)
 
   // A shared link carries a whole design in its hash, and whoever followed it
   // wants that box — not a menu asking what they are building. So a link always
@@ -47,6 +51,11 @@ export default function App() {
         productHomeHref={import.meta.env.BASE_URL}
         actions={<AppMenu />}
         actionsLabel="Example boxes"
+        // `themeStore` puts this app's colour scheme in Tune this app (Light /
+        // Dark / Match my device, over the account's global choice). `theme`
+        // stays the RESOLVED value the bar paints with.
+        theme={theme}
+        themeStore={useThemeStore}
         suiteSwitcherIconSrc={`${import.meta.env.BASE_URL}unisim-icon.png`}
         contentClassName={CONTAINER}
         className="no-print"

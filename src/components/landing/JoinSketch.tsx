@@ -35,32 +35,32 @@ export default function JoinSketch() {
     >
       <defs>
         <pattern id="diy-join-hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-          <line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" strokeWidth="2" />
+          <line x1="0" y1="0" x2="0" y2="6" className="stroke-slate-400" strokeWidth="2" />
         </pattern>
       </defs>
 
       <g key={replay}>
         {/* The through piece: full length, loses nothing, arrives first. */}
         <g className="diy-piece" style={{ '--dx': '0px', '--dy': '-70px' } as React.CSSProperties}>
-          <rect x={0} y={0} width={t} height={H} fill="#e2e8f0" stroke="#334155" strokeWidth={1.6} />
-          <text x={t + 5} y={12} fontSize={11} fill="#334155" fontWeight="600">runs through</text>
+          <rect x={0} y={0} width={t} height={H} className="fill-slate-200 stroke-slate-700" strokeWidth={1.6} />
+          <text x={t + 5} y={12} fontSize={11} className="fill-slate-700" fontWeight="600">runs through</text>
         </g>
 
         {/* The butt piece: flies in from the right and stops at the face. */}
         <g className="diy-piece" style={{ '--dx': '90px', '--dy': '0px', animationDelay: '160ms' } as React.CSSProperties}>
-          <rect x={t} y={railY} width={railEnd - t} height={t} fill="#e2e8f0" stroke="#334155" strokeWidth={1.6} />
-          <text x={(t + railEnd) / 2} y={railY + t / 2 + 4} textAnchor="middle" fontSize={11} fill="#334155" fontWeight="600">
+          <rect x={t} y={railY} width={railEnd - t} height={t} className="fill-slate-200 stroke-slate-700" strokeWidth={1.6} />
+          <text x={(t + railEnd) / 2} y={railY + t / 2 + 4} textAnchor="middle" fontSize={11} className="fill-slate-700" fontWeight="600">
             butts in
           </text>
         </g>
 
         {/* What it gave up — the slice of the through piece it stops against. */}
         <g className="diy-fade" style={{ animationDelay: '620ms' }}>
-          <rect x={0} y={railY} width={t} height={t} fill="url(#diy-join-hatch)" stroke="#b45309" strokeWidth={1.4} />
-          <line x1={0} y1={railY + t + 8} x2={t} y2={railY + t + 8} stroke="#b45309" strokeWidth={1.2} />
-          <line x1={0} y1={railY + t + 4} x2={0} y2={railY + t + 12} stroke="#b45309" strokeWidth={1.2} />
-          <line x1={t} y1={railY + t + 4} x2={t} y2={railY + t + 12} stroke="#b45309" strokeWidth={1.2} />
-          <text x={t + 6} y={railY + t + 12} fontSize={11} fill="#b45309" fontWeight="600">
+          <rect x={0} y={railY} width={t} height={t} fill="url(#diy-join-hatch)" className="stroke-amber-700" strokeWidth={1.4} />
+          <line x1={0} y1={railY + t + 8} x2={t} y2={railY + t + 8} className="stroke-amber-700" strokeWidth={1.2} />
+          <line x1={0} y1={railY + t + 4} x2={0} y2={railY + t + 12} className="stroke-amber-700" strokeWidth={1.2} />
+          <line x1={t} y1={railY + t + 4} x2={t} y2={railY + t + 12} className="stroke-amber-700" strokeWidth={1.2} />
+          <text x={t + 6} y={railY + t + 12} fontSize={11} className="fill-amber-700" fontWeight="600">
             18 mm off the rail
           </text>
         </g>

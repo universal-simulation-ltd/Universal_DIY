@@ -1,12 +1,139 @@
 @import "tailwindcss";
 
-/* Universal DIY is LIGHT ONLY, on purpose, and that is not an oversight.
-   The suite rule is that an app opens light until the user explicitly asks for
-   something else; this app's actual deliverable is a sheet of paper carried to
-   a workshop, so the screen and the print need the same ink-on-white contrast
-   and there is nothing here a dark palette would improve. If a theme toggle is
-   ever added, light must stay the default and the print styles below must not
-   inherit from it. */
+/* Tailwind 4 defaults `dark:` to the OS media query. It is driven from a class
+   on <html> instead, because the suite rule is that an app opens LIGHT and only
+   goes dark when the user says so (Tune this app → Light / Dark / Match my
+   device) — see stores/themeStore.ts. With the media default, a laptop set to
+   dark would override that on first paint. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Dark mode — the screen only, never the paper.
+
+   The deliverable here is a sheet of paper carried to a workshop, and that has
+   not changed: everything below sits inside `@media screen`, so a page printed
+   while the app is dark prints exactly as it does from light (the print block
+   at the bottom of this file never sees a dark value).
+
+   How it works: the components are written in Tailwind's palette (bg-white,
+   text-slate-600, border-amber-500 …), and every one of those utilities reads a
+   CSS variable (`--color-white`, `--color-slate-600`). Under `.dark` those
+   variables are redefined onto the suite's dark theme tokens (BRANDING.md →
+   Theme tokens, Semantic, buttons' "Dark ground"), so every screen follows
+   without a `dark:` twin on every class, and light does not move by a pixel.
+   The SDK draws its own chrome with inline styles and its own sheets, not
+   these variables, so the navbar, dialogs, buttons and boxes are untouched by
+   this and follow `.dark` themselves.
+
+   The mapping keeps the light theme's ORDER: page ground darkest, cards one
+   step up, insets one more; text from slate-900 (strongest) to slate-400
+   (quietest) stays strongest-to-quietest. Every text value clears 4.5:1 on
+   the card, the page and the insets (measured; the numbers are in the commit
+   that added this).
+
+   Drawings are PAPER (`.diy-paper`): the exploded diagram, the 3D view and the
+   cutting plan are what gets printed and taken to the saw, so on screen they
+   stay the sheet they print as — a light page inside the dark chrome, with the
+   light palette put back inside it. The landing page's illustrations are not
+   output, so they follow the tokens and go dark with the rest.
+   --------------------------------------------------------------------------- */
+/* Light values for the tokens the components read outside Tailwind
+   (declared before the dark block, which overrides them). */
+:root {
+  --diy-menu-fg: #374151;
+  --diy-menu-hover-bg: #fffbeb;
+  --diy-menu-hover-fg: #b45309;
+}
+
+@media screen {
+  .dark {
+    /* The suite's dark theme tokens (BRANDING.md). */
+    --surface: #0a0e16;
+    --surface-2: #182236;
+    --text: #e6eaf2;
+    --text-soft: #9fb0c6;
+    --border: #334155;
+    --accent: #ff9a1f;
+
+    /* Grounds: page (slate-100) < card (white) < inset (slate-50). */
+    --color-slate-100: var(--surface);
+    --color-white: #121a28;
+    --color-slate-50: var(--surface-2);
+
+    /* Rules. slate-200 is the hairline, slate-300 an input's outline. */
+    --color-slate-200: var(--border);
+    --color-slate-300: #5f6f87; /* 3.4:1 on the card: a field you can find */
+
+    /* Ink, strongest to quietest. */
+    --color-slate-950: #f1f4f9;
+    --color-slate-900: var(--text);
+    --color-slate-800: #d6dde8;
+    --color-slate-700: #c3cddb;
+    --color-slate-600: #a5b4c8;
+    --color-slate-500: #8e9eb5;
+    --color-slate-400: #8393aa;
+
+    /* The amber highlight: tints become dark amber grounds, the inks lift
+       (amber-700 is the dark accent). 500 and 600 already read on dark. */
+    --color-amber-50: #2a1e0c;
+    --color-amber-100: #3a2a10;
+    --color-amber-200: #5a4116;
+    --color-amber-300: #7a571b;
+    --color-amber-400: #a8741f;
+    --color-amber-700: var(--accent);
+    --color-amber-800: #ffb54d;
+    --color-amber-900: #ffd089;
+
+    /* Critical (BRANDING.md: #F0645A on #3A1D22) and Good. */
+    --color-red-50: #3a1d22;
+    --color-red-200: #6a2c33;
+    --color-red-300: #8c3b42;
+    --color-red-400: #c4524b;
+    --color-red-500: #f0645a;
+    --color-red-600: #f0645a;
+    --color-red-700: #f47f76;
+    --color-red-800: #f8a29b;
+    --color-red-900: #fbc3be;
+    --color-emerald-50: #0f2a1d;
+    --color-emerald-200: #1e5237;
+    --color-emerald-900: #a6e5c1;
+
+    /* AppMenu's inline-styled rows (they live in the SDK's menu panel). */
+    --diy-menu-fg: var(--color-slate-700);
+    --diy-menu-hover-bg: var(--color-amber-50);
+    --diy-menu-hover-fg: var(--accent);
+  }
+
+  /* The canvas behind #root, seen only where the page is pulled past its edge,
+     which in dark would otherwise be a white band. */
+  html.dark {
+    background-color: var(--surface);
+  }
+
+  /* Paper: the light palette, put back. Tailwind's own values, so a drawing
+     in dark is the same drawing, pixel for pixel, as in light. */
+  .dark .diy-paper {
+    --color-white: #fff;
+    --color-slate-50: oklch(98.4% 0.003 247.858);
+    --color-slate-100: oklch(96.8% 0.007 247.896);
+    --color-slate-200: oklch(92.9% 0.013 255.508);
+    --color-slate-300: oklch(86.9% 0.022 252.894);
+    --color-slate-400: oklch(70.4% 0.04 256.788);
+    --color-slate-500: oklch(55.4% 0.046 257.417);
+    --color-slate-600: oklch(44.6% 0.043 257.281);
+    --color-slate-700: oklch(37.2% 0.044 257.287);
+    --color-slate-800: oklch(27.9% 0.041 260.031);
+    --color-slate-900: oklch(20.8% 0.042 265.755);
+    --color-amber-50: oklch(98.7% 0.022 95.277);
+    --color-amber-100: oklch(96.2% 0.059 95.617);
+    --color-amber-700: oklch(55.5% 0.163 48.998);
+    --color-amber-800: oklch(47.3% 0.137 46.201);
+    --color-amber-900: oklch(41.4% 0.112 45.904);
+    background-color: #fff;
+    color: var(--color-slate-900);
+    color-scheme: light;
+  }
+}
 
 html, body {
   height: 100%;
@@ -40,11 +167,11 @@ body {
 .diy-lost {
   background-image: repeating-linear-gradient(
     45deg,
-    #cbd5e1 0 2px,
+    var(--color-slate-300) 0 2px,
     transparent 2px 5px
   );
-  border-right: 1px solid #94a3b8;
-  border-left: 1px solid #94a3b8;
+  border-right: 1px solid var(--color-slate-400);
+  border-left: 1px solid var(--color-slate-400);
   /* Browsers drop background images when printing unless told not to, and a
      dropped hatch here does not degrade to "slightly plainer" — it degrades to
      a bar that looks like solid wood for its whole nominal length, which is
@@ -90,8 +217,8 @@ body {
    two-way highlight does — same amber, same heavier outline, never colour alone. */
 .diy-card:hover .diy-piece,
 .diy-card:focus-visible .diy-piece {
-  fill: #fef3c7;
-  stroke: #b45309;
+  fill: var(--color-amber-100);
+  stroke: var(--color-amber-700);
 }
 
 /* The hero: the same motion on a loop, with a long HOLD in the middle. A page
@@ -151,6 +278,14 @@ body {
 
   html, body {
     background: #fff !important;
+  }
+
+  /* Printed from dark mode, the dark tokens are already out of reach (they
+     live in @media screen), but the theme store also sets `color-scheme: dark`
+     on <html>, which turns the browser's own default text and form controls
+     light. Paper is always light. */
+  html {
+    color-scheme: light !important;
   }
 
   .no-print {

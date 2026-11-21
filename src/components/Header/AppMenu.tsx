@@ -63,8 +63,9 @@ export default function AppMenu() {
   )
 }
 
-const TINT = { bg: '#fffbeb', fg: '#b45309' }
-const REST_COLOR = '#374151'
+// Tokens (index.css), so the rows follow Tune this app's colour scheme.
+const TINT = { bg: 'var(--diy-menu-hover-bg)', fg: 'var(--diy-menu-hover-fg)' }
+const REST_COLOR = 'var(--diy-menu-fg)'
 
 function MenuRow({ label, onClick, glyph = '📦' }: { label: string; onClick: () => void; glyph?: string }) {
   return (

@@ -104,7 +104,7 @@ function Drawing({ id, title, caption, width, height, rects, labels, grained, de
       </figcaption>
       <svg
         viewBox={`${-pad} ${-pad} ${width + pad * 2} ${height + pad * 2}`}
-        className="w-full h-auto"
+        className="diy-paper rounded-md w-full h-auto"
         role="img"
         aria-label={`${title}. ${rects.map((r) => `${r.part} ${Math.round(Math.max(r.w, r.h))} by ${Math.round(Math.min(r.w, r.h))} millimetres`).join('. ')}`}
       >
